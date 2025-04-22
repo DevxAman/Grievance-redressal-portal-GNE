@@ -1,6 +1,7 @@
 -- Create tables
 CREATE TABLE IF NOT EXISTS public.users (
   id UUID PRIMARY KEY REFERENCES auth.users ON DELETE CASCADE,
+  user_id VARCHAR(20) UNIQUE NOT NULL,
   email TEXT NOT NULL UNIQUE,
   name TEXT NOT NULL,
   role TEXT NOT NULL CHECK (role IN ('student', 'clerk', 'admin', 'dsw')),

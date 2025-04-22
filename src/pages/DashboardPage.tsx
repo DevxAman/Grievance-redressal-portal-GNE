@@ -11,6 +11,8 @@ const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
   
   useEffect(() => {
+    console.log('User:', user);  // Check if user is fetched
+    console.log('isAuthenticated:', isAuthenticated); // Check if isAuthenticated is true
     if (!isAuthenticated) {
       navigate('/login');
       return;
@@ -40,7 +42,7 @@ const DashboardPage: React.FC = () => {
           <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
           {user && (
             <p className="mt-2 text-gray-600">
-              Welcome back, <span className="font-semibold">{user.name}</span>
+              Welcome back, <span className="font-semibold">{user.name || 'User'}</span>
             </p>
           )}
         </div>

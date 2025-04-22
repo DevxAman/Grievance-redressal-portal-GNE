@@ -29,7 +29,7 @@ const LoginPage: React.FC = () => {
     delay: 300,
   });
   
-  const handleLogin = async (user_id: string, password: string) => {
+  const handleLogin = async (user_id: string, password: string,) => {
     try {
       setLoading(true);
       setError(null);
@@ -37,6 +37,7 @@ const LoginPage: React.FC = () => {
       const result = await AuthService.login(user_id, password);
       
       if (result.success && result.redirectPath) {
+        console.log("Redirecting to:", result.redirectPath);
         navigate(result.redirectPath);
       } else {
         setError(result.message || 'An unknown error occurred');

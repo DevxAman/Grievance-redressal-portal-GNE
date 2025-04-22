@@ -21,6 +21,7 @@ interface GrievanceContextType extends GrievanceState {
   submitNewGrievance: (formData: FormData) => Promise<void>;
   sendReminder: (grievanceId: string) => Promise<void>;
   updateStatistics: () => Promise<void>;
+  fetchGrievances: () => void;
 }
 
 export const GrievanceContext = createContext<GrievanceContextType | undefined>(undefined);
@@ -159,7 +160,7 @@ export const GrievanceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     dispatch({ type: 'FETCH_GRIEVANCES_REQUEST' });
     
     try {
-      const data = await fetchGrievances(user.id);
+      const data = await fetchGrievances(String(user.id));
       dispatch({ type: 'FETCH_GRIEVANCES_SUCCESS', payload: data });
     } catch (error) {
       console.error('Fetch grievances error:', error);
@@ -193,7 +194,7 @@ export const GrievanceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     dispatch({ type: 'SUBMIT_GRIEVANCE_REQUEST' });
     
     try {
-      const newGrievance = await submitGrievance(formData, user.id);
+      const newGrievance = await submitGrievance(formData, String(user.id));
       dispatch({ type: 'SUBMIT_GRIEVANCE_SUCCESS', payload: newGrievance });
       
       return Promise.resolve();
@@ -240,6 +241,7 @@ export const GrievanceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         submitNewGrievance,
         sendReminder,
         updateStatistics,
+        fetchGrievances
       }}
     >
       {children}

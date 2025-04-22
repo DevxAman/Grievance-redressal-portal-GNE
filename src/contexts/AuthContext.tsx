@@ -17,6 +17,7 @@ interface AuthContextType {
   logout: () => Promise<void>;
   clearError: () => void;
   verifyEmail: (otp: string) => Promise<boolean>;
+  isAuthenticated: boolean;  // Add this
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -315,6 +316,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     logout,
     clearError,
     verifyEmail,
+    isAuthenticated: !!session,  // Check if user is authenticated based on the session
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
