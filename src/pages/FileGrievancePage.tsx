@@ -6,8 +6,8 @@ import { useAuth } from '../hooks/useAuth';
 import { CheckCircle, AlertCircle, X } from 'lucide-react';
 
 const FileGrievancePage: React.FC = () => {
-  const { submitGrievance, error, loading } = useGrievance();
-  const { isAuthenticated } = useAuth();
+  const { submitNewGrievance, error, loading } = useGrievance();
+  const { isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [showPopup, setShowPopup] = useState(false);
@@ -25,13 +25,13 @@ const FileGrievancePage: React.FC = () => {
   }, [showPopup]);
   
   const handleSubmit = async (formData: FormData) => {
-    if (!isAuthenticated) {
+    if (!isAuthenticated || !user) {
       navigate('/login');
       return;
     }
     
     try {
-      const grievanceData = await submitGrievance(formData);
+      const grievanceData = await submitNewGrievance(formData);
       console.log('Grievance submitted successfully:', grievanceData);
       setIsSubmitted(true);
       setShowSuccessModal(true); // Show modal first

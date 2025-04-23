@@ -1,151 +1,161 @@
--- Create tables
-CREATE TABLE IF NOT EXISTS public.users (
-  id UUID PRIMARY KEY REFERENCES auth.users ON DELETE CASCADE,
-  user_id VARCHAR(20) UNIQUE NOT NULL,
-  email TEXT NOT NULL UNIQUE,
-  name TEXT NOT NULL,
-  role TEXT NOT NULL CHECK (role IN ('student', 'clerk', 'admin', 'dsw')),
-  phone_number TEXT,
-  college_roll_number TEXT,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL
+-- Create users table
+CREATE TABLE users (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id VARCHAR(20) UNIQUE NOT NULL,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    password VARCHAR(255) NOT NULL,
+    role VARCHAR(20) NOT NULL CHECK (role IN ('student', 'clerk', 'admin', 'dsw')),
+    name VARCHAR(255),
+    contact_number VARCHAR(20),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE IF NOT EXISTS public.grievances (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
-  title TEXT NOT NULL,
-  description TEXT NOT NULL,
-  category TEXT NOT NULL CHECK (category IN ('academic', 'infrastructure', 'administrative', 'financial', 'other')),
-  status TEXT NOT NULL CHECK (status IN ('pending', 'under-review', 'in-progress', 'resolved', 'rejected')) DEFAULT 'pending',
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL,
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL,
-  assigned_to UUID REFERENCES public.users(id) ON DELETE SET NULL,
-  documents TEXT[],
-  feedback TEXT
+-- Create grievances table
+CREATE TABLE grievances (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES users(id),
+    title VARCHAR(255) NOT NULL,
+    description TEXT NOT NULL,
+    category VARCHAR(50) NOT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'under-review', 'in-progress', 'resolved', 'rejected')),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    assigned_to UUID REFERENCES users(id),
+    documents TEXT[],
+    feedback TEXT
 );
 
-CREATE TABLE IF NOT EXISTS public.responses (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  grievance_id UUID NOT NULL REFERENCES public.grievances(id) ON DELETE CASCADE,
-  admin_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
-  response_text TEXT NOT NULL,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL
+-- Create responses table
+CREATE TABLE responses (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    grievance_id UUID NOT NULL REFERENCES grievances(id),
+    admin_id UUID NOT NULL REFERENCES users(id),
+    response_text TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE IF NOT EXISTS public.statistics (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  resolution_rate NUMERIC NOT NULL DEFAULT 0,
-  avg_response_time NUMERIC NOT NULL DEFAULT 0,
-  grievances_resolved INTEGER NOT NULL DEFAULT 0,
-  user_satisfaction NUMERIC NOT NULL DEFAULT 0,
-  last_updated TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL
+-- Create statistics table
+CREATE TABLE statistics (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    resolution_rate DECIMAL(5,2) NOT NULL DEFAULT 0,
+    avg_response_time INTEGER NOT NULL DEFAULT 0,
+    grievances_resolved INTEGER NOT NULL DEFAULT 0,
+    user_satisfaction DECIMAL(5,2) NOT NULL DEFAULT 0,
+    last_updated TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Create indexes for better performance
+CREATE INDEX idx_grievances_user_id ON grievances(user_id);
+CREATE INDEX idx_grievances_status ON grievances(status);
+CREATE INDEX idx_responses_grievance_id ON responses(grievance_id);
+CREATE INDEX idx_users_email ON users(email);
+CREATE INDEX idx_users_role ON users(role);
 
 -- Set up Row-Level Security (RLS)
 
 -- Enable RLS on all tables
-ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.grievances ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.responses ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.statistics ENABLE ROW LEVEL SECURITY;
+ALTER TABLE users ENABLE ROW LEVEL SECURITY;
+ALTER TABLE grievances ENABLE ROW LEVEL SECURITY;
+ALTER TABLE responses ENABLE ROW LEVEL SECURITY;
+ALTER TABLE statistics ENABLE ROW LEVEL SECURITY;
 
 -- Create policies for users table
 -- Users can only view and update their own profiles
 CREATE POLICY "Users can view own profiles" 
-  ON public.users FOR SELECT 
+  ON users FOR SELECT 
   USING (auth.uid() = id);
 
 CREATE POLICY "Users can update own profiles" 
-  ON public.users FOR UPDATE 
+  ON users FOR UPDATE 
   USING (auth.uid() = id);
 
 -- Admins can view all users
 CREATE POLICY "Admins can view all users" 
-  ON public.users FOR SELECT 
+  ON users FOR SELECT 
   USING (
     EXISTS (
-      SELECT 1 FROM public.users WHERE id = auth.uid() AND role IN ('admin', 'dsw')
+      SELECT 1 FROM users WHERE id = auth.uid() AND role IN ('admin', 'dsw')
     )
   );
 
 -- Create policies for grievances table
 -- Students can only view and update their own grievances
 CREATE POLICY "Users can view own grievances" 
-  ON public.grievances FOR SELECT 
+  ON grievances FOR SELECT 
   USING (user_id = auth.uid());
 
 CREATE POLICY "Users can insert own grievances" 
-  ON public.grievances FOR INSERT 
+  ON grievances FOR INSERT 
   WITH CHECK (user_id = auth.uid());
 
 CREATE POLICY "Users can update own grievances" 
-  ON public.grievances FOR UPDATE 
+  ON grievances FOR UPDATE 
   USING (user_id = auth.uid() AND status = 'pending');
 
 -- Admins, DSW, and clerks can view and manage all grievances
 CREATE POLICY "Staff can view all grievances" 
-  ON public.grievances FOR SELECT 
+  ON grievances FOR SELECT 
   USING (
     EXISTS (
-      SELECT 1 FROM public.users WHERE id = auth.uid() AND role IN ('admin', 'dsw', 'clerk')
+      SELECT 1 FROM users WHERE id = auth.uid() AND role IN ('admin', 'dsw', 'clerk')
     )
   );
 
 CREATE POLICY "Staff can update all grievances" 
-  ON public.grievances FOR UPDATE 
+  ON grievances FOR UPDATE 
   USING (
     EXISTS (
-      SELECT 1 FROM public.users WHERE id = auth.uid() AND role IN ('admin', 'dsw', 'clerk')
+      SELECT 1 FROM users WHERE id = auth.uid() AND role IN ('admin', 'dsw', 'clerk')
     )
   );
 
 -- Create policies for responses table
 -- Students can only view responses to their grievances
 CREATE POLICY "Users can view responses to their grievances" 
-  ON public.responses FOR SELECT 
+  ON responses FOR SELECT 
   USING (
     EXISTS (
-      SELECT 1 FROM public.grievances WHERE id = grievance_id AND user_id = auth.uid()
+      SELECT 1 FROM grievances WHERE id = grievance_id AND user_id = auth.uid()
     )
   );
 
 -- Staff can add and view all responses
 CREATE POLICY "Staff can insert responses" 
-  ON public.responses FOR INSERT 
+  ON responses FOR INSERT 
   WITH CHECK (
     EXISTS (
-      SELECT 1 FROM public.users WHERE id = auth.uid() AND role IN ('admin', 'dsw', 'clerk')
+      SELECT 1 FROM users WHERE id = auth.uid() AND role IN ('admin', 'dsw', 'clerk')
     )
   );
 
 CREATE POLICY "Staff can view all responses" 
-  ON public.responses FOR SELECT 
+  ON responses FOR SELECT 
   USING (
     EXISTS (
-      SELECT 1 FROM public.users WHERE id = auth.uid() AND role IN ('admin', 'dsw', 'clerk')
+      SELECT 1 FROM users WHERE id = auth.uid() AND role IN ('admin', 'dsw', 'clerk')
     )
   );
 
 -- Create policies for statistics table
 -- Everyone can view statistics
 CREATE POLICY "Anyone can view statistics" 
-  ON public.statistics FOR SELECT 
+  ON statistics FOR SELECT 
   USING (true);
 
 -- Only admins can update statistics
 CREATE POLICY "Only admins can update statistics" 
-  ON public.statistics FOR UPDATE 
+  ON statistics FOR UPDATE 
   USING (
     EXISTS (
-      SELECT 1 FROM public.users WHERE id = auth.uid() AND role = 'admin'
+      SELECT 1 FROM users WHERE id = auth.uid() AND role = 'admin'
     )
   );
 
 CREATE POLICY "Only admins can insert statistics" 
-  ON public.statistics FOR INSERT 
+  ON statistics FOR INSERT 
   WITH CHECK (
     EXISTS (
-      SELECT 1 FROM public.users WHERE id = auth.uid() AND role = 'admin'
+      SELECT 1 FROM users WHERE id = auth.uid() AND role = 'admin'
     )
   );
 
@@ -159,12 +169,12 @@ END;
 $$ LANGUAGE plpgsql;
 
 CREATE TRIGGER set_grievances_updated_at
-BEFORE UPDATE ON public.grievances
+BEFORE UPDATE ON grievances
 FOR EACH ROW
 EXECUTE FUNCTION update_updated_at_column();
 
 -- Create initial statistics record
-INSERT INTO public.statistics (resolution_rate, avg_response_time, grievances_resolved, user_satisfaction)
+INSERT INTO statistics (resolution_rate, avg_response_time, grievances_resolved, user_satisfaction)
 VALUES (0, 0, 0, 0);
 
 -- Create function to update statistics when grievances are resolved
@@ -179,20 +189,20 @@ BEGIN
   IF NEW.status = 'resolved' AND OLD.status != 'resolved' THEN
     -- Count total resolved grievances
     SELECT COUNT(*) INTO total_resolved
-    FROM public.grievances
+    FROM grievances
     WHERE status = 'resolved';
     
     -- Count total grievances
     SELECT COUNT(*) INTO total_grievances
-    FROM public.grievances;
+    FROM grievances;
     
     -- Calculate average response time (in days)
     SELECT AVG(EXTRACT(EPOCH FROM (updated_at - created_at)) / 86400) INTO avg_time
-    FROM public.grievances
+    FROM grievances
     WHERE status = 'resolved';
     
     -- Update statistics
-    UPDATE public.statistics
+    UPDATE statistics
     SET 
       resolution_rate = CASE WHEN total_grievances > 0 THEN (total_resolved::NUMERIC / total_grievances) * 100 ELSE 0 END,
       avg_response_time = COALESCE(avg_time, 0),
@@ -205,6 +215,6 @@ END;
 $$ LANGUAGE plpgsql;
 
 CREATE TRIGGER update_stats_on_resolution
-AFTER UPDATE ON public.grievances
+AFTER UPDATE ON grievances
 FOR EACH ROW
 EXECUTE FUNCTION update_statistics_on_resolution(); 

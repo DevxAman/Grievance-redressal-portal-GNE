@@ -106,8 +106,40 @@ export const GrievanceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   // Fetch grievances when user changes
   useEffect(() => {
     if (isAuthenticated && user) {
-      fetchUserGrievances();
-      updateStatistics();
+      console.log('[GrievanceContext] User authenticated, fetching grievances');
+      console.log('[GrievanceContext] User details:', {
+        id: user.id,
+        user_id: user.user_id,
+        role: user.role,
+        email: user.email
+      });
+      
+      // Validate user_id is a valid UUID
+      if (!user.id || typeof user.id !== 'string') {
+        console.error('[GrievanceContext] Invalid user id:', user.id);
+        dispatch({ 
+          type: 'FETCH_GRIEVANCES_FAILURE', 
+          payload: 'Invalid user ID format' 
+        });
+        return;
+      }
+      
+      fetchUserGrievances().catch(error => {
+        console.error('[GrievanceContext] Error in initial grievance fetch:', error);
+      });
+      updateStatistics().catch(error => {
+        console.error('[GrievanceContext] Error in initial statistics fetch:', error);
+      });
+    } else {
+      console.log('[GrievanceContext] User not authenticated or missing:', {
+        isAuthenticated,
+        user: user ? {
+          id: user.id,
+          user_id: user.user_id,
+          role: user.role
+        } : null
+      });
+      dispatch({ type: 'FETCH_GRIEVANCES_SUCCESS', payload: [] });
     }
   }, [isAuthenticated, user]);
 
@@ -138,10 +170,16 @@ export const GrievanceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   useEffect(() => {
     if (!user) return;
     
-    const grievancesSubscription = supabase
-      .channel('public:grievances')
-      .on('postgres_changes', 
-        { event: '*', schema: 'public', table: 'grievances', filter: `user_id=${user.id}` }, 
+    const subscription = supabase
+      .channel('grievance-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'grievances',
+          filter: `user_id=${user.id}`
+        },
         () => {
           fetchUserGrievances();
         }
@@ -149,25 +187,29 @@ export const GrievanceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       .subscribe();
     
     return () => {
-      supabase.removeChannel(grievancesSubscription);
+      subscription.unsubscribe();
     };
   }, [user]);
 
   // Fetch grievances for current user
   const fetchUserGrievances = async () => {
-    if (!user) return;
-    
-    dispatch({ type: 'FETCH_GRIEVANCES_REQUEST' });
-    
+    if (!user) {
+      console.error('No authenticated user found');
+      return;
+    }
+
+    console.log('Fetching grievances for user:', {
+      id: user.id,
+      user_id: user.user_id,
+      role: user.role
+    });
     try {
-      const data = await fetchGrievances(String(user.id));
+      const data = await fetchGrievances(user.id);
+      console.log('Fetched grievances:', data);
       dispatch({ type: 'FETCH_GRIEVANCES_SUCCESS', payload: data });
     } catch (error) {
-      console.error('Fetch grievances error:', error);
-      dispatch({ 
-        type: 'FETCH_GRIEVANCES_FAILURE', 
-        payload: error instanceof Error ? error.message : 'Failed to fetch grievances' 
-      });
+      console.error('Error fetching grievances:', error);
+      dispatch({ type: 'FETCH_GRIEVANCES_FAILURE', payload: 'Failed to fetch grievances' });
     }
   };
 
@@ -189,27 +231,21 @@ export const GrievanceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   // Submit new grievance
   const submitNewGrievance = async (formData: FormData) => {
-    if (!user) return;
-    
-    dispatch({ type: 'SUBMIT_GRIEVANCE_REQUEST' });
-    
+    if (!user) {
+      console.error('No authenticated user found');
+      return;
+    }
+
+    console.log('Submitting new grievance for user:', user.id);
     try {
-      const newGrievance = await submitGrievance(formData, String(user.id));
-      dispatch({ type: 'SUBMIT_GRIEVANCE_SUCCESS', payload: newGrievance });
-      
-      // Ensure subscription is triggered after submission
-      fetchUserGrievances();
-      updateStatistics();
-      
-      return Promise.resolve(newGrievance);
+      const data = await submitGrievance(formData, user.id);
+      if (data) {
+        dispatch({ type: 'SUBMIT_GRIEVANCE_SUCCESS', payload: data });
+        return data;
+      }
     } catch (error) {
-      console.error('Submit grievance error:', error);
-      dispatch({ 
-        type: 'SUBMIT_GRIEVANCE_FAILURE', 
-        payload: error instanceof Error ? error.message : 'Failed to submit grievance' 
-      });
-      
-      return Promise.reject('Failed to submit grievance');
+      console.error('Error submitting grievance:', error);
+      dispatch({ type: 'SUBMIT_GRIEVANCE_FAILURE', payload: 'Failed to submit grievance' });
     }
   };
 

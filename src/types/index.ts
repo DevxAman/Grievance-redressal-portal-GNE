@@ -1,10 +1,12 @@
 export interface User {
-  id: number; // auto-incrementing primary key
-  user_id: string; // unique ID with prefix (e.g., S123 for Student)
+  id: string; // UUID
+  user_id: string;
   email: string;
-  password?: string; // Hashed password, optional in returned data
+  password?: string;
   role: 'student' | 'clerk' | 'dsw' | 'admin';
-  created_at: string;
+  name?: string;
+  contact_number?: string;
+  created_at?: string;
 }
 
 export interface Response {
@@ -16,16 +18,16 @@ export interface Response {
 }
 
 export interface Grievance {
-  id: string;
-  userId: string;
+  id: string; // UUID
+  user_id: string; // UUID
   title: string;
   description: string;
-  category: 'academic' | 'infrastructure' | 'administrative' | 'financial' | 'other';
-  status: 'pending' | 'under-review' | 'in-progress' | 'resolved' | 'rejected';
-  createdAt: string;
-  updatedAt: string;
-  assignedTo?: string;
-  documents?: string[];
+  category: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
+  assigned_to?: string;
+  documents?: string;
   feedback?: string;
   responses?: Response[];
 }

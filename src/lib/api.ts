@@ -25,7 +25,11 @@ export const login = async (user_id: string, password: string): Promise<User> =>
       throw new Error('Invalid user ID or password.');
     }
 
-    console.log('User found:', { ...userData, password: '[REDACTED]' });
+    console.log('User found:', { 
+      user_id: userData.user_id,
+      email: userData.email,
+      role: userData.role
+    });
 
     // If password field doesn't exist or is empty in the database
     if (!userData.password) {
@@ -59,7 +63,9 @@ export const login = async (user_id: string, password: string): Promise<User> =>
 export const signup = async (
   user_id: string, 
   email: string, 
-  password: string
+  password: string,
+  name: string,
+  contact_number: string
 ): Promise<{ success: boolean; message: string; otp?: string }> => {
   try {
     // Validate email format
@@ -129,7 +135,8 @@ export const verifyEmail = async (
   user_id: string,
   email: string,
   hashedPassword: string,
-  role: string,
+  name: string,
+  contact_number: string,
   otp: string,
   providedOtp: string
 ): Promise<{ success: boolean; message: string; user?: User }> => {
@@ -146,8 +153,9 @@ export const verifyEmail = async (
           user_id,
           email,
           password: hashedPassword,
-          role,
-          created_at: new Date().toISOString(),
+          role: 'student',
+          name,
+          contact_number,
         }
       ])
       .select();
@@ -182,13 +190,21 @@ export const fetchCurrentUser = async () => {
   if (!user) return null;
   
   // Get the user profile from our users table
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('users')
     .select('*')
-    .eq('id', user.id)
+    .eq('email', user.email)
     .single();
   
-  if (!data) return null;
+  if (error) {
+    console.error('Error fetching current user:', error);
+    return null;
+  }
+  
+  if (!data) {
+    console.error('No user data found for email:', user.email);
+    return null;
+  }
   
   return mapUserData(data);
 };
@@ -262,24 +278,54 @@ export const signOut = async () => {
 };
 
 // Grievance APIs
-export const fetchGrievances = async (userId?: string) => {
-  let query = supabase
-    .from('grievances')
-    .select(`
-      *,
-      responses (*)
-    `);
+export const fetchGrievances = async (user_id?: string) => {
+  console.log('[API] Fetching grievances for user:', user_id);
   
-  // If userId is provided, filter by user
-  if (userId) {
-    query = query.eq('user_id', userId);
+  try {
+    let query = supabase
+      .from('grievances')
+      .select('*, responses(*)');
+    
+    // If user_id is provided, filter by user
+    if (user_id) {
+      console.log('[API] Adding user filter:', user_id);
+      query = query.eq('user_id', user_id);
+    }
+    
+    console.log('[API] Executing query with order');
+    const { data, error } = await query.order('created_at', { ascending: false });
+    
+    if (error) {
+      console.error('[API] Query error:', error);
+      console.error('[API] Error details:', {
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code,
+        user_id: user_id
+      });
+      throw error;
+    }
+    
+    if (!data) {
+      console.log('[API] No data returned from query');
+      return [];
+    }
+    
+    console.log('[API] Query successful, mapping data');
+    console.log('[API] Raw data:', data);
+    const mappedData = data.map(mapGrievanceData);
+    console.log('[API] Mapped data:', mappedData);
+    return mappedData;
+  } catch (error) {
+    console.error('[API] Unexpected error in fetchGrievances:', error);
+    console.error('[API] Error details:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      user_id: user_id
+    });
+    throw error;
   }
-  
-  const { data, error } = await query.order('created_at', { ascending: false });
-  
-  if (error) throw error;
-  
-  return data.map(mapGrievanceData);
 };
 
 export const fetchGrievanceById = async (grievanceId: string) => {
@@ -297,53 +343,78 @@ export const fetchGrievanceById = async (grievanceId: string) => {
   return mapGrievanceData(data);
 };
 
-export const submitGrievance = async (
-  formData: FormData,
-  userId: string
-) => {
-  // First handle file uploads if any
-  const documents: string[] = [];
-  
-  const files = formData.getAll('documents') as File[];
-  if (files && files.length > 0) {
-    for (const file of files) {
-      if (file.size > 0) {
-        const fileName = `${userId}/${Date.now()}-${file.name}`;
-        const { data, error } = await supabase.storage
-          .from('grievance-documents')
-          .upload(fileName, file);
-        
-        if (error) throw error;
-        
-        // Get the public URL
-        const { data: publicUrlData } = supabase.storage
-          .from('grievance-documents')
-          .getPublicUrl(fileName);
-        
-        documents.push(publicUrlData.publicUrl);
-      }
+export const submitGrievance = async (formData: FormData, userId: string): Promise<Grievance> => {
+  try {
+    console.log('[API] Submitting grievance with user ID:', userId);
+    
+    // Validate userId is a valid UUID
+    if (!userId || typeof userId !== 'string') {
+      console.error('[API] Invalid user ID format:', userId);
+      throw new Error('Invalid user ID format');
     }
+
+    // Extract form data
+    const title = formData.get('title') as string;
+    const description = formData.get('description') as string;
+    const category = formData.get('category') as string;
+    const documents = formData.getAll('documents') as File[];
+
+    // Validate required fields
+    if (!title || !description || !category) {
+      throw new Error('Missing required fields');
+    }
+
+    // Upload documents if any
+    let documentUrls: string[] = [];
+    if (documents && documents.length > 0) {
+      documentUrls = await Promise.all(
+        documents.map(async (file) => {
+          const fileExt = file.name.split('.').pop();
+          const fileName = `${Math.random()}.${fileExt}`;
+          const { data, error } = await supabase.storage
+            .from('grievance-documents')
+            .upload(fileName, file);
+
+          if (error) throw error;
+          return data.path;
+        })
+      );
+    }
+
+    // Insert grievance
+    const { data, error } = await supabase
+      .from('grievances')
+      .insert([
+        {
+          user_id: userId,
+          title,
+          description,
+          category,
+          status: 'pending',
+          documents: documentUrls,
+        },
+      ])
+      .select('*, responses(*)')
+      .single();
+
+    if (error) {
+      console.error('[API] Error submitting grievance:', error);
+      console.error('[API] Error details:', {
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code,
+        user_id: userId
+      });
+      throw error;
+    }
+
+    console.log('[API] Grievance submitted successfully:', data);
+    return mapGrievanceData(data);
+  } catch (error) {
+    console.error('[API] Unexpected error in submitGrievance:', error);
+    throw error;
   }
-  
-  // Now create the grievance
-  const { data, error } = await supabase
-    .from('grievances')
-    .insert({
-      user_id: userId,
-      title: formData.get('title') as string,
-      description: formData.get('description') as string,
-      category: formData.get('category') as 'academic' | 'infrastructure' | 'administrative' | 'financial' | 'other',
-      status: 'pending',
-      documents,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    })
-    .select()
-    .single();
-  
-  if (error) throw error;
-  
-  return mapGrievanceData(data);
 };
 
 export const updateGrievanceStatus = async (
@@ -422,7 +493,10 @@ function mapUserData(user: Database['public']['Tables']['users']['Row']): User {
     id: user.id,
     user_id: user.user_id,
     email: user.email,
+    password: user.password,
     role: user.role as 'student' | 'clerk' | 'dsw' | 'admin',
+    name: user.name,
+    contact_number: user.contact_number,
     created_at: user.created_at
   };
 }
@@ -434,15 +508,15 @@ function mapGrievanceData(
 ): Grievance {
   return {
     id: grievance.id,
-    userId: grievance.user_id,
+    user_id: grievance.user_id,
     title: grievance.title,
     description: grievance.description,
     category: grievance.category,
     status: grievance.status,
-    createdAt: grievance.created_at,
-    updatedAt: grievance.updated_at,
-    assignedTo: grievance.assigned_to,
-    documents: grievance.documents,
+    created_at: grievance.created_at,
+    updated_at: grievance.updated_at,
+    assigned_to: grievance.assigned_to,
+    documents: Array.isArray(grievance.documents) ? grievance.documents.join(',') : grievance.documents,
     feedback: grievance.feedback,
     responses: grievance.responses ? grievance.responses.map(response => ({
       id: response.id,

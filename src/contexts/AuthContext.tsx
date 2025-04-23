@@ -201,58 +201,27 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           passwordMatch = password === userData.password;
         }
       } else {
-        // Use direct comparison for non-hashed passwords
+        // Direct comparison for unhashed passwords
         passwordMatch = password === userData.password;
       }
-      
-      console.log('[AuthContext] Password match check:', passwordMatch);
-      
+
       if (!passwordMatch) {
-        console.error('[AuthContext] Password does not match');
+        console.error('[AuthContext] Password mismatch for user:', user_id);
         throw new Error('Invalid user ID or password.');
       }
 
-      // Set the user state with the found user data
-      console.log('[AuthContext] Setting user state with user data');
-      setUser(userData as UserData);
-      saveAuthState(userData as UserData); // Save to localStorage
-
-      // Determine redirect path based on user role
-      let redirectPath = '/dashboard';
-      if (userData.role === 'admin') {
-        redirectPath = '/admin/dashboard';
-      } else if (userData.role === 'clerk') {
-        redirectPath = '/clerk/dashboard';
-      } else if (userData.role === 'dsw') {
-        redirectPath = '/dsw/dashboard';
-      }
-
-      // For Supabase auth state (optional)
-      try {
-        console.log('[AuthContext] Attempting Supabase auth with email:', userData.email);
-        const { data: sessionData, error: sessionError } = await supabase.auth.signInWithPassword({
-          email: userData.email,
-          password,
-        });
-
-        if (sessionError) {
-          console.warn('[AuthContext] Supabase auth warning:', sessionError);
-        } else {
-          console.log('[AuthContext] Supabase auth success, setting session');
-          setSession(sessionData.session);
-        }
-      } catch (err) {
-        // If Supabase auth fails, we still want the user to be logged in via our custom auth
-        console.warn('[AuthContext] Supabase auth error:', err);
-      }
+      // Remove password from user data before storing
+      const { password: _, ...userWithoutPassword } = userData;
       
-      console.log('[AuthContext] Login process completed successfully, redirecting to:', redirectPath);
-      return redirectPath;
+      // Set the user in state and localStorage
+      setUser(userWithoutPassword);
+      saveAuthState(userWithoutPassword);
+      
+      console.log('[AuthContext] Login successful for user:', userWithoutPassword.user_id);
+      return userWithoutPassword.user_id;
     } catch (error: unknown) {
-      console.error('[AuthContext] Login failed:', (error as Error).message);
-      setError((error as Error).message);
-      setUser(null);
-      saveAuthState(null); // Clear localStorage
+      console.error('[AuthContext] Login error:', error);
+      setError(error instanceof Error ? error.message : 'An error occurred during login');
       throw error;
     } finally {
       setLoading(false);

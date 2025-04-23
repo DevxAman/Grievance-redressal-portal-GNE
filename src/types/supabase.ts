@@ -4,29 +4,32 @@ export interface Database {
       users: {
         Row: {
           id: string;
+          user_id: string;
           email: string;
-          name: string;
+          password: string;
           role: 'student' | 'clerk' | 'admin' | 'dsw';
-          phone_number: string;
-          college_roll_number?: string;
+          name: string;
+          contact_number: string;
           created_at: string;
         };
         Insert: {
           id?: string;
+          user_id: string;
           email: string;
-          name: string;
+          password: string;
           role: 'student' | 'clerk' | 'admin' | 'dsw';
-          phone_number: string;
-          college_roll_number?: string;
+          name: string;
+          contact_number: string;
           created_at?: string;
         };
         Update: {
           id?: string;
+          user_id?: string;
           email?: string;
-          name?: string;
+          password?: string;
           role?: 'student' | 'clerk' | 'admin' | 'dsw';
-          phone_number?: string;
-          college_roll_number?: string;
+          name?: string;
+          contact_number?: string;
           created_at?: string;
         };
       };
