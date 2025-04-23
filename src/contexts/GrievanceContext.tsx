@@ -18,7 +18,7 @@ interface GrievanceState {
 
 interface GrievanceContextType extends GrievanceState {
   fetchUserGrievances: () => Promise<void>;
-  submitNewGrievance: (formData: FormData) => Promise<void>;
+  submitNewGrievance: (formData: FormData) => Promise<Grievance | undefined>;
   sendReminder: (grievanceId: string) => Promise<void>;
   updateStatistics: () => Promise<void>;
   fetchGrievances: () => void;
@@ -141,7 +141,7 @@ export const GrievanceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     const grievancesSubscription = supabase
       .channel('public:grievances')
       .on('postgres_changes', 
-        { event: '*', schema: 'public', table: 'grievances', filter: `user_id=eq.${user.id}` }, 
+        { event: '*', schema: 'public', table: 'grievances', filter: `user_id=${user.id}` }, 
         () => {
           fetchUserGrievances();
         }
@@ -197,7 +197,11 @@ export const GrievanceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       const newGrievance = await submitGrievance(formData, String(user.id));
       dispatch({ type: 'SUBMIT_GRIEVANCE_SUCCESS', payload: newGrievance });
       
-      return Promise.resolve();
+      // Ensure subscription is triggered after submission
+      fetchUserGrievances();
+      updateStatistics();
+      
+      return Promise.resolve(newGrievance);
     } catch (error) {
       console.error('Submit grievance error:', error);
       dispatch({ 

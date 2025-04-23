@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, Mail, Lock, User, ArrowRight, Key, AlertTriangle, Check } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
-import { AuthService } from '../../lib/authService';
 
 const SignupForm: React.FC = () => {
   const [user_id, setUserId] = useState('');
@@ -23,7 +22,7 @@ const SignupForm: React.FC = () => {
   const [loading, setLoading] = useState(false);
 
   const navigate = useNavigate();
-  const { clearError } = useAuth();
+  const { signup, verifyEmail, error: authError, loading: authLoading, clearError } = useAuth();
 
   const validateForm = () => {
     let valid = true;
@@ -85,6 +84,13 @@ const SignupForm: React.FC = () => {
     return valid;
   };
 
+  // Update message when authError changes
+  React.useEffect(() => {
+    if (authError) {
+      setMessage({ type: 'error', text: authError });
+    }
+  }, [authError]);
+
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -92,10 +98,10 @@ const SignupForm: React.FC = () => {
       try {
         setLoading(true);
         setMessage(null);
+        clearError();
         
-        console.log('Sending signup request with data:', { user_id, email, password: '********' });
-        const result = await AuthService.signup(user_id, email, password);
-        console.log('Signup response:', result);
+        console.log('Starting signup process with:', { user_id, email });
+        const result = await signup(user_id, email, password);
         
         if (result.success) {
           setShowOtpInput(true);
@@ -121,17 +127,21 @@ const SignupForm: React.FC = () => {
       try {
         setLoading(true);
         setMessage(null);
+        clearError();
         
-        const result = await AuthService.verifyEmail(email, otp);
+        console.log('Verifying email with OTP');
+        const success = await verifyEmail(otp);
         
-        if (result.success) {
-          setMessage({ type: 'success', text: result.message });
+        if (success) {
+          setMessage({ type: 'success', text: 'Email verified successfully! Redirecting to login...' });
           // Navigate to login page after short delay
           setTimeout(() => {
-            navigate('/login');
+            navigate('/login', { 
+              state: { message: 'Account created successfully. You can now log in.' } 
+            });
           }, 2000);
         } else {
-          setMessage({ type: 'error', text: result.message });
+          setMessage({ type: 'error', text: 'Verification failed. Please check the code and try again.' });
         }
       } catch (error: unknown) {
         setMessage({ type: 'error', text: (error as Error).message || 'Verification failed. Please try again.' });
@@ -192,12 +202,12 @@ const SignupForm: React.FC = () => {
           
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || authLoading}
             className={`w-full flex items-center justify-center py-3 px-6 rounded-lg text-white bg-gradient-to-r from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-900 transition-all duration-300 shadow-lg transform hover:translate-y-[-2px] font-medium ${
-              loading ? 'opacity-70 cursor-not-allowed' : ''
+              (loading || authLoading) ? 'opacity-70 cursor-not-allowed' : ''
             }`}
           >
-            {loading ? (
+            {(loading || authLoading) ? (
               <>
                 <span className="mr-2 animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full" />
                 Verifying...
@@ -254,7 +264,7 @@ const SignupForm: React.FC = () => {
           <div>
             <label htmlFor="email" className="block text-gray-200 mb-2 flex items-center">
               <Mail className="w-5 h-5 mr-2 text-blue-300" />
-              Email Address
+              Email
             </label>
             <input
               id="email"
@@ -264,7 +274,7 @@ const SignupForm: React.FC = () => {
               className={`w-full px-4 py-3 bg-white/10 backdrop-blur-sm border ${
                 errors.email ? 'border-red-500' : 'border-white/20'
               } rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500`}
-              placeholder="your.email@gndec.ac.in"
+              placeholder="your.name@gndec.ac.in"
             />
             {errors.email && (
               <p className="mt-1 text-red-400 text-sm flex items-center">
@@ -274,7 +284,7 @@ const SignupForm: React.FC = () => {
             )}
           </div>
           
-          <div>
+          <div className="relative">
             <label htmlFor="password" className="block text-gray-200 mb-2 flex items-center">
               <Lock className="w-5 h-5 mr-2 text-blue-300" />
               Password
@@ -282,23 +292,25 @@ const SignupForm: React.FC = () => {
             <div className="relative">
               <input
                 id="password"
-                type={showPassword ? 'text' : 'password'}
+                type={showPassword ? "text" : "password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className={`w-full px-4 py-3 bg-white/10 backdrop-blur-sm border ${
                   errors.password ? 'border-red-500' : 'border-white/20'
-                } rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 pr-10`}
-                placeholder="••••••••"
+                } rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                placeholder="•••••••••••"
               />
-              <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="text-gray-400 hover:text-white focus:outline-none transition-colors"
-                >
-                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute inset-y-0 right-0 pr-3 flex items-center"
+              >
+                {showPassword ? (
+                  <EyeOff className="h-5 w-5 text-gray-400" />
+                ) : (
+                  <Eye className="h-5 w-5 text-gray-400" />
+                )}
+              </button>
             </div>
             {errors.password && (
               <p className="mt-1 text-red-400 text-sm flex items-center">
@@ -313,18 +325,16 @@ const SignupForm: React.FC = () => {
               <Lock className="w-5 h-5 mr-2 text-blue-300" />
               Confirm Password
             </label>
-            <div className="relative">
-              <input
-                id="confirmPassword"
-                type={showPassword ? 'text' : 'password'}
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                className={`w-full px-4 py-3 bg-white/10 backdrop-blur-sm border ${
-                  errors.confirmPassword ? 'border-red-500' : 'border-white/20'
-                } rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 pr-10`}
-                placeholder="••••••••"
-              />
-            </div>
+            <input
+              id="confirmPassword"
+              type={showPassword ? "text" : "password"}
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              className={`w-full px-4 py-3 bg-white/10 backdrop-blur-sm border ${
+                errors.confirmPassword ? 'border-red-500' : 'border-white/20'
+              } rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500`}
+              placeholder="•••••••••••"
+            />
             {errors.confirmPassword && (
               <p className="mt-1 text-red-400 text-sm flex items-center">
                 <AlertTriangle className="w-4 h-4 mr-1" />
@@ -335,15 +345,15 @@ const SignupForm: React.FC = () => {
           
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || authLoading}
             className={`w-full flex items-center justify-center py-3 px-6 rounded-lg text-white bg-gradient-to-r from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-900 transition-all duration-300 shadow-lg transform hover:translate-y-[-2px] font-medium ${
-              loading ? 'opacity-70 cursor-not-allowed' : ''
+              (loading || authLoading) ? 'opacity-70 cursor-not-allowed' : ''
             }`}
           >
-            {loading ? (
+            {(loading || authLoading) ? (
               <>
                 <span className="mr-2 animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full" />
-                Signing up...
+                Creating Account...
               </>
             ) : (
               <>
@@ -351,17 +361,18 @@ const SignupForm: React.FC = () => {
               </>
             )}
           </button>
+          
+          <div className="text-center mt-4 text-gray-400">
+            Already have an account?{' '}
+            <Link
+              to="/login"
+              className="text-blue-400 hover:text-blue-300 transition-colors"
+            >
+              Sign in
+            </Link>
+          </div>
         </form>
       )}
-      
-      <div className="mt-8 text-center">
-        <p className="text-sm text-gray-300">
-          Already have an account?{' '}
-          <Link to="/login" className="font-medium text-blue-300 hover:text-blue-200 transition-colors">
-            Sign in
-          </Link>
-        </p>
-      </div>
     </div>
   );
 };

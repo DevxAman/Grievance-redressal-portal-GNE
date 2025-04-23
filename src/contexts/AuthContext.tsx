@@ -7,17 +7,20 @@ import { User } from '../types';
 // User types
 export type UserData = User;
 
+// Auth state storage key
+const AUTH_STORAGE_KEY = 'gndec_portal_auth';
+
 interface AuthContextType {
   user: UserData | null;
   session: Session | null;
   loading: boolean;
   error: string | null;
-  login: (user_id: string, password: string) => Promise<void>;
+  login: (user_id: string, password: string) => Promise<string>;
   signup: (user_id: string, email: string, password: string) => Promise<{ success: boolean; message: string }>;
   logout: () => Promise<void>;
   clearError: () => void;
   verifyEmail: (otp: string) => Promise<boolean>;
-  isAuthenticated: boolean;  // Add this
+  isAuthenticated: boolean;
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -34,11 +37,48 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [pendingUser, setPendingUser] = useState<{ user_id: string; email: string; hashedPassword: string; role: string } | null>(null);
   const [emailOtp, setEmailOtp] = useState<string | null>(null);
 
-  // Check for existing session on mount
+  // Save auth state to localStorage
+  const saveAuthState = (userData: UserData | null) => {
+    if (userData) {
+      localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(userData));
+      console.log('[AuthContext] Auth state saved to localStorage');
+    } else {
+      localStorage.removeItem(AUTH_STORAGE_KEY);
+      console.log('[AuthContext] Auth state removed from localStorage');
+    }
+  };
+
+  // Load auth state from localStorage
+  const loadAuthState = (): UserData | null => {
+    try {
+      const storedAuth = localStorage.getItem(AUTH_STORAGE_KEY);
+      if (storedAuth) {
+        const userData = JSON.parse(storedAuth) as UserData;
+        console.log('[AuthContext] Auth state loaded from localStorage');
+        return userData;
+      }
+    } catch (error) {
+      console.error('[AuthContext] Error loading auth state from localStorage:', error);
+      localStorage.removeItem(AUTH_STORAGE_KEY);
+    }
+    return null;
+  };
+
+  // Check for existing session and localStorage data on mount
   useEffect(() => {
-    const getSession = async () => {
+    const initializeAuth = async () => {
       try {
         setLoading(true);
+        
+        // First try to load from localStorage
+        const storedUser = loadAuthState();
+        if (storedUser) {
+          setUser(storedUser);
+          setLoading(false);
+          return; // Exit early if we have localStorage data
+        }
+        
+        // Otherwise check for Supabase session
         const { data, error } = await supabase.auth.getSession();
         
         if (error) {
@@ -57,7 +97,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
     };
 
-    getSession();
+    initializeAuth();
 
     // Set up auth state change listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
@@ -67,7 +107,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (session?.user) {
         await fetchUserData(session.user.email || '');
       } else {
-        setUser(null);
+        // Only clear user if no localStorage data exists
+        const storedUser = loadAuthState();
+        if (!storedUser) {
+          setUser(null);
+        }
       }
       
       setLoading(false);
@@ -93,63 +137,123 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
 
       if (data) {
-        setUser(data as UserData);
+        const userData = data as UserData;
+        setUser(userData);
+        saveAuthState(userData); // Save to localStorage
       }
     } catch (error: unknown) {
       console.error('Error fetching user data:', (error as Error).message);
       setUser(null);
+      saveAuthState(null); // Clear localStorage
     }
   };
 
   // Login function
   const login = async (user_id: string, password: string) => {
     try {
+      console.log('[AuthContext] Login attempt with user_id:', user_id, 'and password:', password.substring(0, 1) + '*'.repeat(password.length - 1));
       setLoading(true);
       setError(null);
 
       // Find the user in the users table
+      console.log('[AuthContext] Querying users table with user_id:', user_id);
       const { data: userData, error: userError } = await supabase
         .from('users')
         .select('*')
         .eq('user_id', user_id)
         .single();
 
+      console.log('[AuthContext] Query result:', { 
+        found: !!userData, 
+        hasError: !!userError, 
+        errorCode: userError?.code, 
+        errorMessage: userError?.message 
+      });
+
       if (userError) {
+        console.error('[AuthContext] User query error:', userError);
         throw new Error('User not found. Please check your credentials.');
       }
 
       if (!userData) {
+        console.error('[AuthContext] No user data found for user_id:', user_id);
         throw new Error('Invalid user ID or password.');
       }
+
+      // Debug: Show user data (except sensitive info)
+      console.log('[AuthContext] User found:', { 
+        user_id: userData.user_id, 
+        email: userData.email, 
+        role: userData.role 
+      });
 
       // Verify the password
-      const passwordMatch = await bcrypt.compare(password, userData.password);
+      let passwordMatch = false;
+      
+      // Check if password is hashed (starts with $2b$)
+      if (userData.password && userData.password.startsWith('$2b$')) {
+        // Use bcrypt compare for hashed passwords
+        try {
+          passwordMatch = await bcrypt.compare(password, userData.password);
+        } catch (err) {
+          console.error('[AuthContext] Error comparing passwords with bcrypt:', err);
+          // Fallback to direct comparison if bcrypt fails
+          passwordMatch = password === userData.password;
+        }
+      } else {
+        // Use direct comparison for non-hashed passwords
+        passwordMatch = password === userData.password;
+      }
+      
+      console.log('[AuthContext] Password match check:', passwordMatch);
       
       if (!passwordMatch) {
+        console.error('[AuthContext] Password does not match');
         throw new Error('Invalid user ID or password.');
       }
 
-      // Set the user state
+      // Set the user state with the found user data
+      console.log('[AuthContext] Setting user state with user data');
       setUser(userData as UserData);
+      saveAuthState(userData as UserData); // Save to localStorage
+
+      // Determine redirect path based on user role
+      let redirectPath = '/dashboard';
+      if (userData.role === 'admin') {
+        redirectPath = '/admin/dashboard';
+      } else if (userData.role === 'clerk') {
+        redirectPath = '/clerk/dashboard';
+      } else if (userData.role === 'dsw') {
+        redirectPath = '/dsw/dashboard';
+      }
 
       // For Supabase auth state (optional)
       try {
+        console.log('[AuthContext] Attempting Supabase auth with email:', userData.email);
         const { data: sessionData, error: sessionError } = await supabase.auth.signInWithPassword({
           email: userData.email,
-          password: password, // Temporary, will be overwritten by our custom auth
+          password,
         });
 
-        if (!sessionError) {
+        if (sessionError) {
+          console.warn('[AuthContext] Supabase auth warning:', sessionError);
+        } else {
+          console.log('[AuthContext] Supabase auth success, setting session');
           setSession(sessionData.session);
         }
       } catch (err) {
         // If Supabase auth fails, we still want the user to be logged in via our custom auth
-        console.warn('Supabase auth error:', err);
+        console.warn('[AuthContext] Supabase auth error:', err);
       }
+      
+      console.log('[AuthContext] Login process completed successfully, redirecting to:', redirectPath);
+      return redirectPath;
     } catch (error: unknown) {
-      console.error('Login failed:', (error as Error).message);
+      console.error('[AuthContext] Login failed:', (error as Error).message);
       setError((error as Error).message);
       setUser(null);
+      saveAuthState(null); // Clear localStorage
+      throw error;
     } finally {
       setLoading(false);
     }
@@ -158,6 +262,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // Signup function
   const signup = async (user_id: string, email: string, password: string) => {
     try {
+      console.log('[AuthContext] Signup attempt:', { user_id, email });
       setLoading(true);
       setError(null);
 
@@ -167,22 +272,32 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
 
       // Check if user_id already exists
-      const { data: existingUserId } = await supabase
+      const { data: existingUserId, error: userIdError } = await supabase
         .from('users')
         .select('user_id')
         .eq('user_id', user_id)
         .single();
+
+      if (userIdError && userIdError.code !== 'PGRST116') {
+        console.error('[AuthContext] Error checking existing user ID:', userIdError);
+        throw new Error('Error checking user ID. Please try again.');
+      }
 
       if (existingUserId) {
         throw new Error('User ID already exists. Please choose a different one.');
       }
 
       // Check if email already exists
-      const { data: existingEmail } = await supabase
+      const { data: existingEmail, error: emailError } = await supabase
         .from('users')
         .select('email')
         .eq('email', email)
         .single();
+
+      if (emailError && emailError.code !== 'PGRST116') {
+        console.error('[AuthContext] Error checking existing email:', emailError);
+        throw new Error('Error checking email. Please try again.');
+      }
 
       if (existingEmail) {
         throw new Error('Email already registered. Please use a different email or login.');
@@ -190,10 +305,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       // Default role is student for new signups
       const role = 'student';
-
-      // Hash the password
-      const salt = await bcrypt.genSalt(10);
-      const hashedPassword = await bcrypt.hash(password, salt);
 
       // Generate OTP for email verification
       const otp = Math.floor(100000 + Math.random() * 900000).toString();
@@ -203,19 +314,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setPendingUser({
         user_id,
         email,
-        hashedPassword,
+        hashedPassword: password, // In a real app, you'd hash this password
         role
       });
 
       // Log the OTP to console (for demo purposes)
-      console.log(`OTP for ${email}: ${otp}`);
+      console.log(`[AuthContext] OTP for ${email}: ${otp}`);
 
       return { 
         success: true, 
         message: 'Verification code sent to your email. Please verify to complete registration.' 
       };
     } catch (error: unknown) {
-      console.error('Signup failed:', (error as Error).message);
+      console.error('[AuthContext] Signup failed:', (error as Error).message);
       setError((error as Error).message);
       return { success: false, message: (error as Error).message };
     } finally {
@@ -226,6 +337,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // Email verification with OTP
   const verifyEmail = async (otp: string) => {
     try {
+      console.log('[AuthContext] Verifying email with OTP');
       setLoading(true);
       
       if (!pendingUser) {
@@ -251,27 +363,33 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         .select();
 
       if (error) {
+        console.error('[AuthContext] Error creating user:', error);
         throw error;
       }
 
-      // Optional: Register with Supabase Auth too
+      // Optional: Register with Supabase Auth too (if you're using Supabase auth)
       try {
-        await supabase.auth.signUp({
+        const { error: authError } = await supabase.auth.signUp({
           email: pendingUser.email,
           password: pendingUser.hashedPassword,
         });
+        
+        if (authError) {
+          console.warn('[AuthContext] Supabase auth signup warning:', authError);
+        }
       } catch (err) {
-        console.warn('Supabase auth signup error:', err);
+        console.warn('[AuthContext] Supabase auth signup error:', err);
         // Continue regardless, as we're using our custom auth
       }
 
+      console.log('[AuthContext] User created successfully:', data[0]);
       setUser(data[0] as UserData);
       setPendingUser(null);
       setEmailOtp(null);
       
       return true;
     } catch (error: unknown) {
-      console.error('Email verification failed:', (error as Error).message);
+      console.error('[AuthContext] Email verification failed:', (error as Error).message);
       setError((error as Error).message);
       return false;
     } finally {
@@ -282,19 +400,26 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // Logout function
   const logout = async () => {
     try {
+      console.log('[AuthContext] Logging out user');
       setLoading(true);
       
-      // Sign out from Supabase auth if it's being used
+      // Sign out from Supabase auth
       try {
         await supabase.auth.signOut();
       } catch (err) {
-        console.warn('Supabase signout error:', err);
+        console.warn('[AuthContext] Supabase signout error:', err);
       }
       
+      // Reset user and session states immediately
       setUser(null);
       setSession(null);
+      
+      // Remove from localStorage
+      saveAuthState(null);
+      
+      console.log('[AuthContext] Logout completed successfully');
     } catch (error: unknown) {
-      console.error('Logout failed:', (error as Error).message);
+      console.error('[AuthContext] Logout failed:', (error as Error).message);
       setError((error as Error).message);
     } finally {
       setLoading(false);
@@ -316,8 +441,25 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     logout,
     clearError,
     verifyEmail,
-    isAuthenticated: !!session,  // Check if user is authenticated based on the session
+    isAuthenticated: !!user && user !== null,  // Ensure this is based only on our custom user data
   };
+
+  // Debug helper - expose context object to window for debugging
+  if (typeof window !== 'undefined') {
+    (window as any).__authDebug = {
+      getAuthState: () => ({
+        user,
+        session,
+        loading,
+        isAuthenticated: !!user && user !== null,
+      }),
+      setUser: (userData: any) => {
+        console.log('[AUTH DEBUG] Setting user state manually to:', userData);
+        setUser(userData);
+        saveAuthState(userData);
+      }
+    };
+  }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

@@ -48,11 +48,12 @@ const pendingRegistrations = new Map();
 // Login endpoint
 app.post('/api/auth/login', async (req, res) => {
   try {
-    console.log('Login request received');
+    console.log('Login request received with user_id:', req.body.user_id);
     
     const { user_id, password } = req.body;
     
     if (!user_id || !password) {
+      console.log('Missing credentials - user_id or password not provided');
       return res.status(400).json({ 
         success: false, 
         message: 'User ID and password are required' 
@@ -60,11 +61,14 @@ app.post('/api/auth/login', async (req, res) => {
     }
     
     // Find the user in the users table
+    console.log('Querying database for user with user_id:', user_id);
     const { data: userData, error: userError } = await supabase
       .from('users')
       .select('*')
       .eq('user_id', user_id) // Check user_id in the database
       .single(); // Get a single result
+    
+    console.log('Database query result:', { found: !!userData, hasError: !!userError });
     
     if (userError) {
       console.error('Database error during login:', userError);
@@ -75,6 +79,7 @@ app.post('/api/auth/login', async (req, res) => {
     }
     
     if (!userData) {
+      console.log('No user found with user_id:', user_id);
       return res.status(401).json({ 
         success: false, 
         message: 'Invalid user ID or password.' 
@@ -83,6 +88,7 @@ app.post('/api/auth/login', async (req, res) => {
     
     // If password field doesn't exist or is empty in the database
     if (!userData.password) {
+      console.log('User found but password field is missing or empty');
       return res.status(401).json({ 
         success: false, 
         message: 'Account setup incomplete. Please contact support.' 
@@ -91,9 +97,11 @@ app.post('/api/auth/login', async (req, res) => {
     
     // Verify the password
     // const passwordMatch = await bcrypt.compare(password, userData.password);
-    const passwordMatch=userData.password
+    const passwordMatch = password === userData.password;
+    console.log('Password validation result:', passwordMatch);
     
     if (!passwordMatch) {
+      console.log('Password does not match for user_id:', user_id);
       return res.status(401).json({ 
         success: false, 
         message: 'Invalid user ID or password.' 
@@ -112,6 +120,9 @@ app.post('/api/auth/login', async (req, res) => {
     } else if (userData.role === 'dsw') {
       redirectPath = '/dsw/dashboard';
     }
+    
+    console.log('Login successful for user_id:', user_id, 'with role:', userData.role);
+    console.log('Redirecting to:', redirectPath);
     
     res.json({ 
       success: true, 
@@ -318,6 +329,69 @@ app.post('/api/auth/verify', async (req, res) => {
     res.status(500).json({ 
       success: false, 
       message: error.message || 'An unknown error occurred' 
+    });
+  }
+});
+
+// Test/debug endpoint for checking user with ID 123
+app.get('/api/debug/check-test-user', async (req, res) => {
+  try {
+    // Check if user with ID 123 exists
+    const { data: existingUser, error: checkError } = await supabase
+      .from('users')
+      .select('*')
+      .eq('user_id', '123')
+      .single();
+    
+    if (checkError && checkError.code !== 'PGRST116') {
+      return res.status(500).json({
+        success: false,
+        message: 'Error checking for test user',
+        error: checkError
+      });
+    }
+    
+    if (existingUser) {
+      return res.json({
+        success: true,
+        message: 'Test user exists',
+        user: existingUser
+      });
+    }
+    
+    // Create test user if it doesn't exist
+    const testUser = {
+      user_id: '123',
+      email: 'test123@gndec.ac.in',
+      password: '123',
+      role: 'student',
+      created_at: new Date().toISOString()
+    };
+    
+    const { data: newUser, error: createError } = await supabase
+      .from('users')
+      .insert([testUser])
+      .select();
+    
+    if (createError) {
+      return res.status(500).json({
+        success: false,
+        message: 'Error creating test user',
+        error: createError
+      });
+    }
+    
+    return res.json({
+      success: true,
+      message: 'Test user created',
+      user: newUser[0]
+    });
+  } catch (error) {
+    console.error('Debug endpoint error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
     });
   }
 });

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FileUp, AlertTriangle } from 'lucide-react';
 
 interface GrievanceFormProps {
@@ -15,6 +15,23 @@ const GrievanceForm: React.FC<GrievanceFormProps> = ({ onSubmit }) => {
   const [files, setFiles] = useState<FileList | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Reset form when component key changes
+  useEffect(() => {
+    setFormData({
+      title: '',
+      category: 'academic',
+      description: '',
+    });
+    setFiles(null);
+    setErrors({});
+    
+    // Reset file input if it exists
+    const fileInput = document.getElementById('documents') as HTMLInputElement;
+    if (fileInput) {
+      fileInput.value = '';
+    }
+  }, []);
   
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>

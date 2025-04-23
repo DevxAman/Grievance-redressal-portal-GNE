@@ -1,9 +1,9 @@
 import React, { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useGrievance } from '../hooks/useGrievance';
 import GrievanceCard from '../components/grievance/GrievanceCard';
-import { PlusCircle, FilePlus, BarChart3, HelpCircle, LogOut, Loader2 } from 'lucide-react';
+import { PlusCircle, FilePlus, BarChart3, HelpCircle, LogOut, Loader2, User } from 'lucide-react';
 
 const DashboardPage: React.FC = () => {
   const { user, isAuthenticated, logout } = useAuth();
@@ -11,15 +11,20 @@ const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
   
   useEffect(() => {
-    console.log('User:', user);  // Check if user is fetched
-    console.log('isAuthenticated:', isAuthenticated); // Check if isAuthenticated is true
+    // Debug log
+    console.log('Auth state in DashboardPage:', { user, isAuthenticated, loading });
+    
+    if (loading) return; // Don't check anything while loading
+    
     if (!isAuthenticated) {
+      console.log('User not authenticated, redirecting to login');
       navigate('/login');
       return;
     }
     
+    // User is authenticated, fetch grievances
     fetchGrievances();
-  }, [isAuthenticated, navigate]);
+  }, [isAuthenticated, loading, navigate, fetchGrievances]);
   
   const handleLogout = () => {
     logout();
@@ -41,9 +46,13 @@ const DashboardPage: React.FC = () => {
         <div className="mb-10">
           <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
           {user && (
-            <p className="mt-2 text-gray-600">
-              Welcome back, <span className="font-semibold">{user.name || 'User'}</span>
-            </p>
+            <div className="mt-2 text-gray-600 flex items-center">
+              <span>Welcome back, </span>
+              <Link to="/dashboard" className="flex items-center ml-1 text-blue-600 hover:text-blue-800 font-semibold transition-colors">
+                <User className="h-4 w-4 mr-1" />
+                <span>{user.user_id || 'User'}</span>
+              </Link>
+            </div>
           )}
         </div>
         
