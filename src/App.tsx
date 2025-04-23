@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { GrievanceProvider } from './contexts/GrievanceContext';
+import { initEmailJS } from './lib/emailService';
 
 // Layout components
 import Navbar from './components/layout/Navbar';
@@ -18,6 +19,29 @@ import HowItWorksPage from './pages/HowItWorksPage';
 import ContactPage from './pages/ContactPage';
 
 const App: React.FC = () => {
+  useEffect(() => {
+    // Initialize EmailJS
+    try {
+      // Get EmailJS User ID from environment variables
+      const emailJSUserID = import.meta.env.VITE_EMAILJS_USER_ID;
+      
+      console.log('Environment Variables Check:');
+      console.log('- VITE_EMAILJS_USER_ID:', emailJSUserID ? 'Present' : 'Missing');
+      console.log('- VITE_EMAILJS_SERVICE_ID:', import.meta.env.VITE_EMAILJS_SERVICE_ID ? 'Present' : 'Missing');
+      console.log('- VITE_EMAILJS_TEMPLATE_ID:', import.meta.env.VITE_EMAILJS_TEMPLATE_ID ? 'Present' : 'Missing');
+      
+      if (!emailJSUserID || emailJSUserID === 'your_emailjs_user_id') {
+        console.warn('EmailJS User ID is missing or using the placeholder value. Email functionality will not work correctly.');
+        return;
+      }
+      
+      initEmailJS(emailJSUserID);
+      console.log('EmailJS initialized successfully with User ID:', emailJSUserID.substring(0, 5) + '...');
+    } catch (error) {
+      console.error('Error initializing EmailJS:', error);
+    }
+  }, []);
+
   return (
     <AuthProvider>
       <GrievanceProvider>

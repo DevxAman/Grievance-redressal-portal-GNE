@@ -8,6 +8,7 @@ import {
   updateGrievanceStatus 
 } from '../lib/api';
 import { supabase } from '../lib/supabase';
+import { sendGrievanceConfirmation, formatDate } from '../lib/emailService';
 
 interface GrievanceState {
   grievances: Grievance[];
@@ -241,6 +242,58 @@ export const GrievanceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       const data = await submitGrievance(formData, user.id);
       if (data) {
         dispatch({ type: 'SUBMIT_GRIEVANCE_SUCCESS', payload: data });
+        
+        // Send confirmation email
+        try {
+          // Get EmailJS template and service IDs from environment variables
+          const templateID = import.meta.env.VITE_EMAILJS_TEMPLATE_ID;
+          const serviceID = import.meta.env.VITE_EMAILJS_SERVICE_ID;
+          
+          // Debug information
+          console.log('Email.js Configuration:', {
+            templateID,
+            serviceID,
+            userEmail: user.email,
+            userName: user.name,
+            grievanceId: data.id
+          });
+          
+          if (!templateID || !serviceID) {
+            console.warn('EmailJS template or service ID not found in environment variables');
+            return data;
+          }
+          
+          // Prepare email parameters
+          const emailParams = {
+            to_email: user.email,
+            to_name: user.name || 'Student',
+            grievance_id: data.id,
+            grievance_title: data.title,
+            grievance_category: data.category,
+            submission_date: formatDate(data.created_at)
+          };
+          
+          console.log('Sending email with params:', emailParams);
+          
+          // Send the confirmation email
+          const emailResult = await sendGrievanceConfirmation(
+            templateID,
+            serviceID,
+            emailParams
+          );
+          
+          console.log('Email sending result:', emailResult);
+          
+          if (emailResult.success) {
+            console.log('Confirmation email sent for grievance:', data.id);
+          } else {
+            console.warn('Failed to send confirmation email:', emailResult.message);
+          }
+        } catch (emailError) {
+          console.error('Error sending confirmation email:', emailError);
+          // We don't want to fail the submission if email fails
+        }
+        
         return data;
       }
     } catch (error) {

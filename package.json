@@ -11,6 +11,7 @@
     "server": "node server.cjs"
   },
   "dependencies": {
+    "@emailjs/browser": "^4.4.1",
     "@react-spring/web": "^9.7.5",
     "@supabase/supabase-js": "^2.49.4",
     "@types/bcryptjs": "^2.4.6",

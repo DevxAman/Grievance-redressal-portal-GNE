@@ -212,19 +212,19 @@ const HeroSection: React.FC = () => {
         {/* Action buttons with glass effect container for better visibility */}
         <animated.div 
           style={buttonSpring} 
-          className="mt-12 z-50 relative"
+          className="mt-12 z-50 relative w-full px-4 sm:px-0"
         >
-          <div className="backdrop-blur-xl bg-white/10 p-6 rounded-xl shadow-2xl border border-white/20">
-            <div className="flex flex-col sm:flex-row gap-5 justify-center items-center">
+          <div className="backdrop-blur-xl bg-white/10 p-4 sm:p-6 rounded-xl shadow-2xl border border-white/20 max-w-2xl mx-auto">
+            <div className="flex flex-col sm:flex-row sm:gap-8 md:gap-10 justify-center items-center">
               <Link 
                 to="/file-grievance" 
-                className="w-64 px-8 py-4 rounded-lg text-lg font-medium text-white bg-gradient-to-r from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-300 shadow-xl transform hover:translate-y-[-2px] hover:shadow-blue-500/30"
+                className="w-full sm:w-52 md:w-56 lg:w-64 px-4 sm:px-6 py-4 mb-4 sm:mb-0 rounded-lg text-lg font-medium text-white bg-gradient-to-r from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-300 shadow-xl transform hover:translate-y-[-2px] hover:shadow-blue-500/30 text-center"
               >
                 File a Grievance
               </Link>
               <Link 
                 to="/track-grievance" 
-                className="w-64 px-8 py-4 rounded-lg text-lg font-medium text-gray-800 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 transition-all duration-300 shadow-xl transform hover:translate-y-[-2px] hover:shadow-white/30"
+                className="w-full sm:w-52 md:w-56 lg:w-64 px-4 sm:px-6 py-4 rounded-lg text-lg font-medium text-gray-800 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 transition-all duration-300 shadow-xl transform hover:translate-y-[-2px] hover:shadow-white/30 text-center"
               >
                 Track Your Grievance
               </Link>
