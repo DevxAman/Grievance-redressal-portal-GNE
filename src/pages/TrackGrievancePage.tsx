@@ -73,18 +73,26 @@ const TrackGrievancePage: React.FC = () => {
       toast.success(
         <div className="flex items-center gap-2">
           <CheckCircle2 className="h-5 w-5" />
-          <span>Reminder sent successfully!</span>
+          <span>Reminder sent successfully! A Gmail window should have opened.</span>
         </div>
       );
     } catch (err) {
       // Dismiss loading toast
       toast.dismiss(loadingToast);
       
-      // Show error toast
+      // Get meaningful error message
+      let errorMessage = "Failed to send reminder";
+      if (err instanceof Error) {
+        errorMessage = err.message;
+      } else if (typeof err === 'string') {
+        errorMessage = err;
+      }
+      
+      // Show error toast with proper error message
       toast.error(
         <div className="flex items-center gap-2">
           <AlertTriangle className="h-5 w-5" />
-          <span>{err instanceof Error ? err.message : 'Failed to send reminder'}</span>
+          <span>{errorMessage}</span>
         </div>
       );
       console.error('Failed to send reminder:', err);
@@ -145,7 +153,7 @@ const TrackGrievancePage: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50 py-12 sm:py-16 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
-        <h1 className="text-2xl sm:text-3xl font-bold text-center text-gray-900 mt-16">Track Your Grievances</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold text-center text-gray-900 mt-10">Track Your Grievances</h1>
         
         {error && (
           <div className="mb-6 p-3 sm:p-4 bg-red-100 border border-red-400 text-red-700 rounded-md flex items-center">
@@ -263,6 +271,7 @@ const TrackGrievancePage: React.FC = () => {
                 onViewDetails={handleViewDetails}
                 onDelete={handleDeleteGrievance}
                 cooldownInfo={getCooldownInfo(grievance.id)}
+                showDescription={true}
               />
             ))}
           </div>

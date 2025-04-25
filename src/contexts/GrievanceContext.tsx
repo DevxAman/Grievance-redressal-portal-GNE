@@ -333,11 +333,40 @@ export const GrievanceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         throw new Error('Grievance not found');
       }
       
-      // Update status and set the reminder sent flag
-      await updateGrievanceStatus(grievanceId, 'under-review', undefined, true);
+      // Update status and set the reminder sent flag - catch errors but continue
+      try {
+        await updateGrievanceStatus(grievanceId, 'under-review', undefined, true);
+      } catch (statusError) {
+        console.warn('Could not update grievance status, but will continue with reminder:', statusError);
+      }
       
-      // Send email notification to admin
-      await sendReminderEmail(grievanceToRemind, user.email);
+      // Primary method: Open Gmail in a new tab with pre-filled reminder email
+      const recipient = 'std.grievance@gmail.com';
+      const subject = encodeURIComponent(`REMINDER: Grievance #${grievanceId} - ${grievanceToRemind.title}`);
+      const formattedDate = new Date(grievanceToRemind.created_at).toLocaleDateString();
+      const body = encodeURIComponent(
+        `Dear Admin,\n\n` +
+        `I am writing to follow up on my grievance (ID: ${grievanceId}) which was submitted on ${formattedDate}.\n\n` +
+        `Title: ${grievanceToRemind.title}\n` +
+        `Category: ${grievanceToRemind.category}\n` +
+        `Current Status: ${grievanceToRemind.status.replace('-', ' ')}\n\n` +
+        `I would appreciate if you could provide an update on the status of my grievance.\n\n` +
+        `Thank you for your attention to this matter.\n\n` +
+        `Sincerely,\n` +
+        `${user.name || user.user_id}\n` +
+        `${user.email}`
+      );
+      
+      window.open(`https://mail.google.com/mail/?view=cm&fs=1&to=${recipient}&su=${subject}&body=${body}`, '_blank');
+      
+      // Secondary method (optional): Try to send email notification via the API
+      try {
+        await sendReminderEmail(grievanceToRemind, user.email);
+        console.log('API reminder email sent successfully');
+      } catch (emailError) {
+        console.warn('API email failed, but Gmail compose was opened:', emailError);
+        // This is now considered optional, so we don't throw an error
+      }
       
       // Calculate when the cooldown expires (48 hours from now)
       const cooldownExpiresAt = now + (48 * 60 * 60 * 1000);

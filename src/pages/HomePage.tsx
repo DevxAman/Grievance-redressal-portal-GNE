@@ -59,11 +59,11 @@ const HomePage: React.FC = () => {
       <AnimatedStats />
       
       {/* How It Works Section */}
-      <section className="py-16 bg-gray-50">
+      <section className="py-12 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">How It Works</h2>
-            <p className="text-lg text-gray-600 max-w-3xl mx-auto p-4 mt-8">
+          <div className="text-center mb-8">
+            <h2 className="text-3xl font-bold text-gray-900 mt-16">How It Works</h2>
+            <p className="text-lg text-gray-600 max-w-3xl mx-auto p-4 mt-4">
               Our grievance redressal process is designed to be simple, transparent, and effective.
             </p>
           </div>
@@ -72,10 +72,10 @@ const HomePage: React.FC = () => {
             {/* Progress Line */}
             <div className="hidden md:block absolute left-1/2 top-0 bottom-0 w-1 bg-blue-200 transform -translate-x-1/2"></div>
             
-            <div className="space-y-12 relative">
+            <div className="space-y-8 relative">
               {/* Step 1 */}
               <div className="md:flex items-center">
-                <div className="md:w-1/2 md:pr-12 md:text-right mb-6 md:mb-0">
+                <div className="md:w-1/2 md:pr-12 md:text-right mb-4 md:mb-0">
                   <h3 className="text-xl font-semibold text-gray-900 mb-2">Submit Your Grievance</h3>
                   <p className="text-gray-600">
                     Fill out the grievance form with details about your issue and upload any relevant documents.
@@ -83,7 +83,7 @@ const HomePage: React.FC = () => {
                 </div>
                 
                 <div className="md:w-12 md:mx-auto relative flex justify-center">
-                  <div className="h-12 w-12 rounded-full border-4 border-blue-200 bg-blue-600 text-white flex items-center justify-center font-bold text-xl z-10">
+                  <div className="h-10 w-10 rounded-full border-4 border-blue-200 bg-blue-600 text-white flex items-center justify-center font-bold text-xl z-10">
                     1
                   </div>
                 </div>
@@ -100,12 +100,12 @@ const HomePage: React.FC = () => {
                 </div>
                 
                 <div className="md:w-12 md:mx-auto relative flex justify-center">
-                  <div className="h-12 w-12 rounded-full border-4 border-blue-200 bg-blue-600 text-white flex items-center justify-center font-bold text-xl z-10">
+                  <div className="h-10 w-10 rounded-full border-4 border-blue-200 bg-blue-600 text-white flex items-center justify-center font-bold text-xl z-10">
                     2
                   </div>
                 </div>
                 
-                <div className="md:w-1/2 md:pl-12 md:text-left mb-6 md:mb-0">
+                <div className="md:w-1/2 md:pl-12 md:text-left mb-4 md:mb-0">
                   <h3 className="text-xl font-semibold text-gray-900 mb-2">Grievance Processing</h3>
                   <p className="text-gray-600">
                     Your grievance is reviewed by the appropriate authority and assigned to the relevant department.
@@ -115,7 +115,7 @@ const HomePage: React.FC = () => {
               
               {/* Step 3 */}
               <div className="md:flex items-center">
-                <div className="md:w-1/2 md:pr-12 md:text-right mb-6 md:mb-0">
+                <div className="md:w-1/2 md:pr-12 md:text-right mb-4 md:mb-0">
                   <h3 className="text-xl font-semibold text-gray-900 mb-2">Track Progress</h3>
                   <p className="text-gray-600">
                     Monitor the status of your grievance in real-time through your dashboard and receive email updates.
@@ -123,7 +123,7 @@ const HomePage: React.FC = () => {
                 </div>
                 
                 <div className="md:w-12 md:mx-auto relative flex justify-center">
-                  <div className="h-12 w-12 rounded-full border-4 border-blue-200 bg-blue-600 text-white flex items-center justify-center font-bold text-xl z-10">
+                  <div className="h-10 w-10 rounded-full border-4 border-blue-200 bg-blue-600 text-white flex items-center justify-center font-bold text-xl z-10">
                     3
                   </div>
                 </div>
@@ -140,7 +140,7 @@ const HomePage: React.FC = () => {
                 </div>
                 
                 <div className="md:w-12 md:mx-auto relative flex justify-center">
-                  <div className="h-12 w-12 rounded-full border-4 border-blue-200 bg-blue-600 text-white flex items-center justify-center font-bold text-xl z-10">
+                  <div className="h-10 w-10 rounded-full border-4 border-blue-200 bg-blue-600 text-white flex items-center justify-center font-bold text-xl z-10">
                     4
                   </div>
                 </div>

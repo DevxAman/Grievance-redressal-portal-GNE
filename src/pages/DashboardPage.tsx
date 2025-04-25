@@ -7,7 +7,7 @@ import { PlusCircle, FilePlus, BarChart3, HelpCircle, LogOut, Loader2, User } fr
 
 const DashboardPage: React.FC = () => {
   const { user, isAuthenticated, logout } = useAuth();
-  const { grievances, fetchGrievances, sendReminder, loading } = useGrievance();
+  const { grievances, fetchGrievances, loading } = useGrievance();
   const navigate = useNavigate();
   
   useEffect(() => {
@@ -153,8 +153,8 @@ const DashboardPage: React.FC = () => {
               {grievances.slice(0, 6).map((grievance) => (
                 <GrievanceCard 
                   key={grievance.id} 
-                  grievance={grievance} 
-                  onSendReminder={sendReminder}
+                  grievance={grievance}
+                  showTrackButton={true}
                 />
               ))}
             </div>

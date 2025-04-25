@@ -144,7 +144,7 @@ const FileGrievancePage: React.FC = () => {
           </div>
         ) : (
           <>
-            <h1 className="text-3xl font-bold text-center text-gray-900 mt-16">File a New Grievance</h1>
+            <h1 className="text-3xl font-bold text-center text-gray-900 mt-10">File a New Grievance</h1>
             <p className="mb-8 text-gray-600 text-center max-w-2xl mx-auto">
               Please provide detailed information about your grievance. The more specific you are, the better we can assist you in resolving the issue.
             </p>

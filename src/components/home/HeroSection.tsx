@@ -198,7 +198,7 @@ const HeroSection: React.FC = () => {
   }, []);
   
   return (
-    <div className="relative min-h-screen">
+    <div className="relative min-h-[80vh]">
       {/* Carousel Background */}
       <BackgroundCarousel 
         externalSlide={currentSlide}
@@ -213,7 +213,7 @@ const HeroSection: React.FC = () => {
       />
        */}
       {/* Content overlay */}
-      <div className="relative z-40 pt-16 sm:pt-20 md:pt-32 flex flex-col items-center justify-center min-h-screen text-center px-4 sm:px-6 lg:px-8">
+      <div className="relative z-40 pt-16 sm:pt-20 md:pt-24 flex flex-col items-center justify-center min-h-[80vh] text-center px-4 sm:px-6 lg:px-8">
         <animated.div style={fadeIn} className="max-w-5xl mx-auto">
           <div className="flex items-center justify-center mb-4 sm:mb-6">
             <Book className="w-8 h-8 sm:w-10 sm:h-10 text-blue-300 mr-2 sm:mr-3 filter drop-shadow-lg" />
@@ -240,7 +240,7 @@ const HeroSection: React.FC = () => {
         {/* Action buttons with glass effect container for better visibility */}
         <animated.div 
           style={buttonSpring} 
-          className="mt-8 sm:mt-12 mb-6 sm:mb-10 z-50 relative w-full px-4 sm:px-0"
+          className="mt-8 sm:mt-10 mb-6 sm:mb-8 z-50 relative w-full px-4 sm:px-0"
         >
           <div className="backdrop-blur-xl bg-white/10 p-4 sm:p-6 rounded-xl shadow-2xl border border-white/20 max-w-2xl mx-auto">
             <div className="flex flex-col sm:flex-row sm:gap-4 md:gap-8 lg:gap-10 justify-center items-center">
@@ -261,7 +261,7 @@ const HeroSection: React.FC = () => {
         </animated.div>
         
         {/* Indicators - moved from bottom to above steps */}
-        <div className="flex justify-center z-30 my-6 sm:my-10">
+        <div className="flex justify-center z-30 my-4 sm:my-6">
           <div className="flex space-x-1.5 sm:space-x-2 bg-black/40 backdrop-blur-md px-4 sm:px-5 py-2 sm:py-3 rounded-full shadow-lg">
             {[0, 1, 2, 3, 4].map((index) => (
               <div 
@@ -281,7 +281,7 @@ const HeroSection: React.FC = () => {
       {/* Process cards */}
       <animated.div 
         style={cardsSpring} 
-        className="relative z-40 max-w-7xl mx-auto px-4 mt-8 sm:mt-12 md:mt-20 pt-12 sm:pt-16 md:pt-24 mb-16 sm:mb-20 sm:px-6 lg:px-8"
+        className="relative z-40 max-w-7xl mx-auto px-4 mt-4 sm:mt-6 md:mt-10 pt-8 sm:pt-12 md:pt-16 mb-12 sm:mb-16 sm:px-6 lg:px-8"
       >
         <div className="relative mb-8 sm:mb-12 text-center">
           <h2 className="text-3xl sm:text-4xl font-bold text-white mb-3 sm:mb-4 inline-block bg-gradient-to-r from-blue-300 to-white bg-clip-text text-transparent">
