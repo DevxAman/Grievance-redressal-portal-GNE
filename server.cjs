@@ -2,6 +2,65 @@ const express = require('express');
 const cors = require('cors');
 const bcrypt = require('bcryptjs');
 const { createClient } = require('@supabase/supabase-js');
+const nodemailer = require('nodemailer');
+require('dotenv').config(); // Load environment variables
+
+// Log email configuration (with sensitive data redacted)
+console.log('Email configuration loaded:', {
+  emailUser: process.env.EMAIL_USER ? `${process.env.EMAIL_USER.substring(0, 3)}...` : 'not set',
+  emailPass: process.env.EMAIL_PASS ? '********' : 'not set'
+});
+
+// Nodemailer transporter setup
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: process.env.EMAIL_USER || 'your-email@gmail.com', // Use environment variable or default
+    pass: process.env.EMAIL_PASS || 'your-app-password'    // Use environment variable or default
+  }
+});
+
+// Email sending function
+const sendEmailConfirmation = async (to, subject, grievanceData) => {
+  try {
+    const mailOptions = {
+      from: process.env.EMAIL_USER || 'your-email@gmail.com',
+      to,
+      subject,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px; background-color: #f9f9f9;">
+          <h2 style="color: #2c3e50; text-align: center; margin-bottom: 20px;">Grievance Submission Confirmation</h2>
+          <p style="color: #555; font-size: 16px; line-height: 1.5;">Dear Student,</p>
+          <p style="color: #555; font-size: 16px; line-height: 1.5;">Your grievance has been successfully submitted to the administration. Here are the details:</p>
+          
+          <div style="background-color: #fff; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #3498db;">
+            <p style="margin: 5px 0;"><strong>Grievance ID:</strong> ${grievanceData.id}</p>
+            <p style="margin: 5px 0;"><strong>Title:</strong> ${grievanceData.title}</p>
+            <p style="margin: 5px 0;"><strong>Category:</strong> ${grievanceData.category}</p>
+            <p style="margin: 5px 0;"><strong>Status:</strong> ${grievanceData.status}</p>
+            <p style="margin: 5px 0;"><strong>Submitted on:</strong> ${new Date(grievanceData.created_at).toLocaleString()}</p>
+          </div>
+          
+          <p style="color: #555; font-size: 16px; line-height: 1.5;">Your grievance is now under review by our administration team. You will receive updates as there are developments on your case.</p>
+          
+          <p style="color: #555; font-size: 16px; line-height: 1.5;">Thank you for your patience.</p>
+          
+          <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
+            <p style="color: #777; font-size: 14px;">This is an automated message. Please do not reply to this email.</p>
+            <p style="color: #777; font-size: 14px;">GNDEC Grievance Portal</p>
+          </div>
+        </div>
+      `
+    };
+
+    const info = await transporter.sendMail(mailOptions);
+    console.log('Email sent:', info.response);
+    return { success: true, messageId: info.messageId };
+  } catch (error) {
+    console.error('Error sending email:', error);
+    return { success: false, error: error.message };
+  }
+};
 
 // Initialize Supabase client
 const supabaseUrl = 'https://dypvelqdjyfbbslqpjxn.supabase.co';
@@ -287,6 +346,104 @@ app.post('/api/auth/verify', async (req, res) => {
       success: false, 
       message: error.message || 'An unknown error occurred' 
     });
+  }
+});
+
+// Add endpoint for sending grievance confirmation emails
+app.post('/api/grievances/send-confirmation', async (req, res) => {
+  try {
+    const { email, grievanceData } = req.body;
+    
+    if (!email || !grievanceData) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Email and grievance data are required'
+      });
+    }
+
+    console.log('Sending grievance confirmation email to:', email);
+    
+    const result = await sendEmailConfirmation(
+      email,
+      `Grievance Submission Confirmation - ${grievanceData.title}`,
+      grievanceData
+    );
+    
+    if (result.success) {
+      console.log('Email sent successfully');
+      return res.json({ 
+        success: true, 
+        message: 'Confirmation email sent successfully'
+      });
+    } else {
+      console.error('Failed to send email:', result.error);
+      return res.status(500).json({ 
+        success: false, 
+        message: `Failed to send email: ${result.error}`
+      });
+    }
+  } catch (error) {
+    console.error('Grievance confirmation email error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: error.message || 'Failed to send confirmation email'
+    });
+  }
+});
+
+// Add endpoint for sending reminder emails
+app.post('/api/grievances/send-reminder', async (req, res) => {
+  const { grievance, userEmail } = req.body;
+  
+  if (!grievance || !userEmail) {
+    return res.status(400).json({ error: 'Missing required fields' });
+  }
+  
+  try {
+    console.log(`Sending reminder email for grievance ${grievance.id} requested by ${userEmail}`);
+    
+    // Get admin email from environment variables or use a default
+    const adminEmail = process.env.ADMIN_EMAIL || 'admin@example.com';
+    
+    // Create email content
+    const mailOptions = {
+      from: process.env.EMAIL_USER || 'noreply@gndec.ac.in',
+      to: adminEmail,
+      subject: `REMINDER: Grievance #${grievance.id} Requires Attention`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 5px;">
+          <h2 style="color: #d32f2f; text-align: center;">Grievance Reminder</h2>
+          <p><strong>A student has requested attention to their grievance:</strong></p>
+          <div style="background-color: #f5f5f5; padding: 15px; border-radius: 4px; margin: 15px 0;">
+            <p><strong>Grievance ID:</strong> ${grievance.id}</p>
+            <p><strong>Title:</strong> ${grievance.title}</p>
+            <p><strong>Category:</strong> ${grievance.category}</p>
+            <p><strong>Submitted:</strong> ${new Date(grievance.created_at).toLocaleString()}</p>
+            <p><strong>Current Status:</strong> ${grievance.status}</p>
+          </div>
+          <p>The student with email <strong>${userEmail}</strong> has requested an update on this grievance.</p>
+          <p>Please review this grievance at your earliest convenience and provide an update to the student.</p>
+          <div style="text-align: center; margin-top: 20px;">
+            <a href="${process.env.APP_URL || 'http://localhost:5173'}/admin/dashboard" 
+               style="background-color: #1976d2; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px;">
+              Review Grievance
+            </a>
+          </div>
+          <p style="margin-top: 30px; font-size: 12px; color: #757575; text-align: center;">
+            This is an automated message from the GNDEC Grievance Tracking System.
+          </p>
+        </div>
+      `
+    };
+    
+    // Send the email
+    const info = await transporter.sendMail(mailOptions);
+    console.log('Reminder email sent successfully:', info.messageId);
+    
+    res.status(200).json({ success: true, message: 'Reminder email sent to admin' });
+  } catch (error) {
+    console.error('Error sending reminder email:', error);
+    res.status(500).json({ error: 'Failed to send reminder email' });
   }
 });
 

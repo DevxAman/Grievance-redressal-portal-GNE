@@ -24,10 +24,38 @@ const HeroSection: React.FC = () => {
   });
   
   const cardsSpring = useSpring({
-    from: { opacity: 0, transform: 'translateY(40px)' },
-    to: { opacity: 1, transform: 'translateY(0)' },
+    from: { opacity: 0, transform: 'translateY(60px)', scale: 0.9 },
+    to: { opacity: 1, transform: 'translateY(0)', scale: 1 },
     delay: 800,
+    config: { mass: 1.2, tension: 180, friction: 24 }
   });
+
+  // Individual card animations with staggered delay
+  const card1Spring = useSpring({
+    from: { opacity: 0, transform: 'translateY(80px) scale(0.8)' },
+    to: { opacity: 1, transform: 'translateY(0) scale(1)' },
+    delay: 1000,
+    config: { mass: 1, tension: 210, friction: 20 }
+  });
+
+  const card2Spring = useSpring({
+    from: { opacity: 0, transform: 'translateY(80px) scale(0.8)' },
+    to: { opacity: 1, transform: 'translateY(0) scale(1)' },
+    delay: 1200,
+    config: { mass: 1, tension: 210, friction: 20 }
+  });
+
+  const card3Spring = useSpring({
+    from: { opacity: 0, transform: 'translateY(80px) scale(0.8)' },
+    to: { opacity: 1, transform: 'translateY(0) scale(1)' },
+    delay: 1400,
+    config: { mass: 1, tension: 210, friction: 20 }
+  });
+  
+  // Scroll to top when component mounts
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
   
   useEffect(() => {
     if (!mountRef.current) return;
@@ -185,16 +213,16 @@ const HeroSection: React.FC = () => {
       />
        */}
       {/* Content overlay */}
-      <div className="relative z-40 pt-20 md:pt-32 flex flex-col items-center justify-center min-h-screen text-center px-4 sm:px-6 lg:px-8">
+      <div className="relative z-40 pt-16 sm:pt-20 md:pt-32 flex flex-col items-center justify-center min-h-screen text-center px-4 sm:px-6 lg:px-8">
         <animated.div style={fadeIn} className="max-w-5xl mx-auto">
-          <div className="flex items-center justify-center mb-6">
-            <Book className="w-10 h-10 text-blue-300 mr-3 filter drop-shadow-lg" />
-            <div className="bg-white/30 backdrop-blur-lg px-5 py-2 rounded-full text-white text-sm font-semibold shadow-lg">
+          <div className="flex items-center justify-center mb-4 sm:mb-6">
+            <Book className="w-8 h-8 sm:w-10 sm:h-10 text-blue-300 mr-2 sm:mr-3 filter drop-shadow-lg" />
+            <div className="bg-white/30 backdrop-blur-lg px-3 sm:px-5 py-1.5 sm:py-2 rounded-full text-white text-xs sm:text-sm font-semibold shadow-lg">
               GNDEC Grievance Portal
             </div>
           </div>
           
-          <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-white max-w-4xl mx-auto leading-tight mb-8 drop-shadow-lg">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold text-white max-w-4xl mx-auto leading-tight mb-6 sm:mb-8 drop-shadow-lg">
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-300 to-blue-50">
               GNDEC Grievance
             </span>
@@ -204,7 +232,7 @@ const HeroSection: React.FC = () => {
             </span>
           </h1>
           
-          <p className="mt-6 text-xl text-gray-100 max-w-2xl mx-auto drop-shadow-md backdrop-blur-sm bg-black/10 p-4 rounded-lg">
+          <p className="mt-4 sm:mt-6 text-base sm:text-lg md:text-xl text-gray-100 max-w-2xl mx-auto drop-shadow-md backdrop-blur-sm bg-black/10 p-3 sm:p-4 rounded-lg">
             A platform where your concerns matter. Submit and track grievances with a streamlined and transparent process.
           </p>
         </animated.div>
@@ -212,19 +240,19 @@ const HeroSection: React.FC = () => {
         {/* Action buttons with glass effect container for better visibility */}
         <animated.div 
           style={buttonSpring} 
-          className="mt-12 z-50 relative w-full px-4 sm:px-0"
+          className="mt-8 sm:mt-12 mb-6 sm:mb-10 z-50 relative w-full px-4 sm:px-0"
         >
           <div className="backdrop-blur-xl bg-white/10 p-4 sm:p-6 rounded-xl shadow-2xl border border-white/20 max-w-2xl mx-auto">
-            <div className="flex flex-col sm:flex-row sm:gap-8 md:gap-10 justify-center items-center">
+            <div className="flex flex-col sm:flex-row sm:gap-4 md:gap-8 lg:gap-10 justify-center items-center">
               <Link 
                 to="/file-grievance" 
-                className="w-full sm:w-52 md:w-56 lg:w-64 px-4 sm:px-6 py-4 mb-4 sm:mb-0 rounded-lg text-lg font-medium text-white bg-gradient-to-r from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-300 shadow-xl transform hover:translate-y-[-2px] hover:shadow-blue-500/30 text-center"
+                className="w-full sm:w-auto flex-1 px-4 py-3 sm:py-4 mb-3 sm:mb-0 rounded-lg text-sm sm:text-base md:text-lg font-medium text-white bg-gradient-to-r from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-300 shadow-lg transform hover:translate-y-[-2px] hover:shadow-blue-500/30 text-center"
               >
                 File a Grievance
               </Link>
               <Link 
                 to="/track-grievance" 
-                className="w-full sm:w-52 md:w-56 lg:w-64 px-4 sm:px-6 py-4 rounded-lg text-lg font-medium text-gray-800 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 transition-all duration-300 shadow-xl transform hover:translate-y-[-2px] hover:shadow-white/30 text-center"
+                className="w-full sm:w-auto flex-1 px-4 py-3 sm:py-4 rounded-lg text-sm sm:text-base md:text-lg font-medium text-gray-800 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 transition-all duration-300 shadow-lg transform hover:translate-y-[-2px] hover:shadow-white/30 text-center"
               >
                 Track Your Grievance
               </Link>
@@ -232,17 +260,17 @@ const HeroSection: React.FC = () => {
           </div>
         </animated.div>
         
-        {/* Indicators */}
-        <div className="absolute bottom-32 left-0 right-0 flex justify-center z-30">
-          <div className="flex space-x-2 bg-black/20 backdrop-blur-sm px-4 py-2 rounded-full">
+        {/* Indicators - moved from bottom to above steps */}
+        <div className="flex justify-center z-30 my-6 sm:my-10">
+          <div className="flex space-x-1.5 sm:space-x-2 bg-black/40 backdrop-blur-md px-4 sm:px-5 py-2 sm:py-3 rounded-full shadow-lg">
             {[0, 1, 2, 3, 4].map((index) => (
               <div 
                 key={index}
                 onClick={() => setCurrentSlide(index)}
-                className={`h-2 rounded-full transition-all duration-300 cursor-pointer ${
+                className={`h-2 sm:h-2.5 rounded-full transition-all duration-300 cursor-pointer ${
                   index === currentSlide 
-                    ? 'w-8 bg-blue-500' 
-                    : 'w-2 bg-white/50 hover:bg-white/80'
+                    ? 'w-8 sm:w-10 bg-white' 
+                    : 'w-2 sm:w-2.5 bg-white/60 hover:bg-white/90'
                 }`}
               />
             ))}
@@ -253,66 +281,56 @@ const HeroSection: React.FC = () => {
       {/* Process cards */}
       <animated.div 
         style={cardsSpring} 
-        className="relative z-40 max-w-7xl mx-auto px-4 -mt-44 mb-20 sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-3 gap-6"
+        className="relative z-40 max-w-7xl mx-auto px-4 mt-8 sm:mt-12 md:mt-20 pt-12 sm:pt-16 md:pt-24 mb-16 sm:mb-20 sm:px-6 lg:px-8"
       >
-        <div className="bg-black/40 backdrop-blur-lg p-8 rounded-xl border border-gray-700/50 shadow-2xl transform transition-transform duration-300 hover:scale-105">
-          <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-700 rounded-full flex items-center justify-center mb-6 mx-auto shadow-lg shadow-blue-900/30">
-            <span className="text-2xl font-bold text-white">1</span>
-          </div>
-          <h3 className="text-2xl font-semibold text-white mb-3 text-center">Submit Grievance</h3>
-          <p className="text-gray-200 text-center">
-            Fill out the grievance form with relevant details and supporting documents.
-          </p>
+        <div className="relative mb-8 sm:mb-12 text-center">
+          <h2 className="text-3xl sm:text-4xl font-bold text-white mb-3 sm:mb-4 inline-block bg-gradient-to-r from-blue-300 to-white bg-clip-text text-transparent">
+            How It Works
+          </h2>
+          <div className="w-16 sm:w-24 h-1 bg-gradient-to-r from-blue-500 to-blue-300 mx-auto rounded-full"></div>
         </div>
         
-        <div className="bg-black/40 backdrop-blur-lg p-8 rounded-xl border border-gray-700/50 shadow-2xl transform transition-transform duration-300 hover:scale-105">
-          <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-700 rounded-full flex items-center justify-center mb-6 mx-auto shadow-lg shadow-blue-900/30">
-            <span className="text-2xl font-bold text-white">2</span>
-          </div>
-          <h3 className="text-2xl font-semibold text-white mb-3 text-center">Track Progress</h3>
-          <p className="text-gray-200 text-center">
-            Monitor the status of your grievance in real-time through your dashboard.
-          </p>
-        </div>
-        
-        <div className="bg-black/40 backdrop-blur-lg p-8 rounded-xl border border-gray-700/50 shadow-2xl transform transition-transform duration-300 hover:scale-105">
-          <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-700 rounded-full flex items-center justify-center mb-6 mx-auto shadow-lg shadow-blue-900/30">
-            <span className="text-2xl font-bold text-white">3</span>
-          </div>
-          <h3 className="text-2xl font-semibold text-white mb-3 text-center">Get Resolution</h3>
-          <p className="text-gray-200 text-center">
-            Receive updates and resolutions directly through the portal and email.
-          </p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6 md:gap-8">
+          <animated.div 
+            style={card1Spring}
+            className="bg-black/40 backdrop-blur-lg p-6 sm:p-8 pt-10 sm:pt-12 pb-8 sm:pb-14 rounded-xl border border-gray-700/50 shadow-2xl transform transition-all duration-500 hover:scale-105 hover:bg-black/50 hover:border-blue-700/40 hover:shadow-blue-900/20 flex flex-col min-h-[250px] sm:min-h-[300px]"
+          >
+            <div className="relative">
+              <span className="absolute -top-3 -left-3 bg-blue-700 text-white text-xl sm:text-2xl font-bold w-10 h-10 sm:w-12 sm:h-12 rounded-lg flex items-center justify-center shadow-lg">1</span>
+            </div>
+            <h3 className="text-2xl sm:text-3xl font-bold text-white mb-4 sm:mb-6 text-center bg-gradient-to-r from-blue-200 to-white bg-clip-text text-transparent">Submit Grievance</h3>
+            <p className="text-base sm:text-lg text-gray-100 text-center flex-grow leading-relaxed tracking-wide">
+              Fill out the grievance form with relevant details and supporting documents.
+            </p>
+          </animated.div>
+          
+          <animated.div 
+            style={card2Spring}
+            className="bg-black/40 backdrop-blur-lg p-6 sm:p-8 pt-10 sm:pt-12 pb-8 sm:pb-14 rounded-xl border border-gray-700/50 shadow-2xl transform transition-all duration-500 hover:scale-105 hover:bg-black/50 hover:border-blue-700/40 hover:shadow-blue-900/20 flex flex-col min-h-[250px] sm:min-h-[300px]"
+          >
+            <div className="relative">
+              <span className="absolute -top-3 -left-3 bg-blue-700 text-white text-xl sm:text-2xl font-bold w-10 h-10 sm:w-12 sm:h-12 rounded-lg flex items-center justify-center shadow-lg">2</span>
+            </div>
+            <h3 className="text-2xl sm:text-3xl font-bold text-white mb-4 sm:mb-6 text-center bg-gradient-to-r from-blue-200 to-white bg-clip-text text-transparent">Track Progress</h3>
+            <p className="text-base sm:text-lg text-gray-100 text-center flex-grow leading-relaxed tracking-wide">
+              Monitor the status of your grievance in real-time through your dashboard.
+            </p>
+          </animated.div>
+          
+          <animated.div 
+            style={card3Spring}
+            className="bg-black/40 backdrop-blur-lg p-6 sm:p-8 pt-10 sm:pt-12 pb-8 sm:pb-14 rounded-xl border border-gray-700/50 shadow-2xl transform transition-all duration-500 hover:scale-105 hover:bg-black/50 hover:border-blue-700/40 hover:shadow-blue-900/20 flex flex-col min-h-[250px] sm:min-h-[300px] sm:col-span-2 md:col-span-1 mx-auto sm:mx-0 sm:col-start-1 md:col-start-auto max-w-md sm:max-w-none"
+          >
+            <div className="relative">
+              <span className="absolute -top-3 -left-3 bg-blue-700 text-white text-xl sm:text-2xl font-bold w-10 h-10 sm:w-12 sm:h-12 rounded-lg flex items-center justify-center shadow-lg">3</span>
+            </div>
+            <h3 className="text-2xl sm:text-3xl font-bold text-white mb-4 sm:mb-6 text-center bg-gradient-to-r from-blue-200 to-white bg-clip-text text-transparent">Get Resolution</h3>
+            <p className="text-base sm:text-lg text-gray-100 text-center flex-grow leading-relaxed tracking-wide">
+              Receive updates and resolutions directly through the portal and email.
+            </p>
+          </animated.div>
         </div>
       </animated.div>
-      
-      {/* Arrow navigation */}
-      <div className="absolute bottom-10 left-0 right-0 flex justify-between px-8 z-50">
-        <button 
-          className="w-14 h-14 rounded-full bg-gradient-to-r from-blue-600/40 to-blue-800/40 backdrop-blur-lg flex items-center justify-center hover:from-blue-600/60 hover:to-blue-800/60 transition-all duration-300 shadow-lg border border-white/10 focus:outline-none focus:ring-2 focus:ring-white/30"
-          onClick={() => {
-            // Previous slide navigation handled by the BackgroundCarousel component
-            const prevSlide = currentSlide === 0 ? 4 : currentSlide - 1;
-            setCurrentSlide(prevSlide);
-          }}
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
-          </svg>
-        </button>
-        <button 
-          className="w-14 h-14 rounded-full bg-gradient-to-r from-blue-600/40 to-blue-800/40 backdrop-blur-lg flex items-center justify-center hover:from-blue-600/60 hover:to-blue-800/60 transition-all duration-300 shadow-lg border border-white/10 focus:outline-none focus:ring-2 focus:ring-white/30"
-          onClick={() => {
-            // Next slide navigation handled by the BackgroundCarousel component
-            const nextSlide = (currentSlide + 1) % 5;
-            setCurrentSlide(nextSlide);
-          }}
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
-          </svg>
-        </button>
-      </div>
     </div>
   );
 };

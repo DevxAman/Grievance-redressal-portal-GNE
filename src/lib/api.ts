@@ -420,27 +420,66 @@ export const submitGrievance = async (formData: FormData, userId: string): Promi
 export const updateGrievanceStatus = async (
   grievanceId: string,
   status: string,
-  adminId?: string
+  adminId?: string,
+  sendReminderEmail = false
 ) => {
-  const updates: Database['public']['Tables']['grievances']['Update'] = {
-    status: status as 'pending' | 'under-review' | 'in-progress' | 'resolved' | 'rejected',
-    updated_at: new Date().toISOString(),
-  };
-  
-  if (adminId) {
-    updates.assigned_to = adminId;
+  try {
+    // First get the current grievance data to check last reminder time
+    const { data: currentGrievance, error: fetchError } = await supabase
+      .from('grievances')
+      .select('*')
+      .eq('id', grievanceId)
+      .single();
+    
+    if (fetchError) {
+      console.error('Error fetching grievance for status update:', fetchError);
+      throw fetchError;
+    }
+    
+    // Check if we need to enforce cooldown period for reminders
+    if (sendReminderEmail) {
+      const now = new Date();
+      const lastReminderTime = currentGrievance.last_reminder_sent 
+        ? new Date(currentGrievance.last_reminder_sent) 
+        : null;
+      
+      // Check if 48 hours have passed since the last reminder
+      if (lastReminderTime && now.getTime() - lastReminderTime.getTime() < 48 * 60 * 60 * 1000) {
+        throw new Error('Reminder can only be sent once every 48 hours');
+      }
+    }
+    
+    const updates: Database['public']['Tables']['grievances']['Update'] = {
+      status: status as 'pending' | 'under-review' | 'in-progress' | 'resolved' | 'rejected',
+      updated_at: new Date().toISOString(),
+    };
+    
+    if (adminId) {
+      updates.assigned_to = adminId;
+    }
+    
+    // If this is a reminder, update the last_reminder_sent timestamp
+    if (sendReminderEmail) {
+      updates.last_reminder_sent = new Date().toISOString();
+    }
+    
+    const { data, error } = await supabase
+      .from('grievances')
+      .update(updates)
+      .eq('id', grievanceId)
+      .select()
+      .single();
+    
+    if (error) {
+      console.error('Error updating grievance status:', error);
+      throw error;
+    }
+    
+    return mapGrievanceData(data);
+  } catch (error) {
+    console.error('Error in updateGrievanceStatus:', error);
+    throw error;
   }
-  
-  const { data, error } = await supabase
-    .from('grievances')
-    .update(updates)
-    .eq('id', grievanceId)
-    .select()
-    .single();
-  
-  if (error) throw error;
-  
-  return mapGrievanceData(data);
 };
 
 export const addResponse = async (
@@ -473,6 +512,38 @@ export const addResponse = async (
   return { success: true };
 };
 
+// Add deleteGrievance function
+export const deleteGrievance = async (grievanceId: string): Promise<boolean> => {
+  try {
+    // Delete any associated responses first (to maintain referential integrity)
+    const { error: responsesError } = await supabase
+      .from('responses')
+      .delete()
+      .eq('grievance_id', grievanceId);
+    
+    if (responsesError) {
+      console.error('Error deleting responses:', responsesError);
+      throw new Error('Failed to delete grievance responses');
+    }
+    
+    // Now delete the grievance
+    const { error } = await supabase
+      .from('grievances')
+      .delete()
+      .eq('id', grievanceId);
+    
+    if (error) {
+      console.error('Error deleting grievance:', error);
+      throw new Error('Failed to delete grievance');
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Delete grievance error:', error);
+    throw error;
+  }
+};
+
 // Statistics APIs
 export const fetchStatistics = async () => {
   const { data, error } = await supabase
@@ -486,6 +557,78 @@ export const fetchStatistics = async () => {
   
   return data;
 };
+
+// Add a function to send reminder email to admin
+export const sendReminderEmail = async (grievanceData: Grievance, userEmail: string) => {
+  try {
+    // API endpoint to send reminder email
+    const response = await fetch('/api/grievances/send-reminder', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        grievanceId: grievanceData.id,
+        grievanceTitle: grievanceData.title,
+        grievanceCategory: grievanceData.category,
+        grievanceStatus: grievanceData.status,
+        userEmail: userEmail,
+        dateSubmitted: grievanceData.created_at
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Failed to send reminder email');
+    }
+
+    const result = await response.json();
+    return result;
+  } catch (error) {
+    console.error('Error sending reminder email:', error);
+    throw error;
+  }
+};
+
+// Function to send confirmation email after grievance submission
+export const sendConfirmationEmail = async (grievanceData: Grievance, userEmail: string) => {
+  try {
+    // API endpoint to send confirmation email
+    const response = await fetch('/api/grievances/send-confirmation', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        grievanceId: grievanceData.id,
+        grievanceTitle: grievanceData.title,
+        grievanceCategory: grievanceData.category,
+        email: userEmail,
+        grievanceData: {
+          id: grievanceData.id,
+          title: grievanceData.title,
+          category: grievanceData.category,
+          status: grievanceData.status,
+          dateSubmitted: grievanceData.created_at
+        }
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Failed to send confirmation email');
+    }
+
+    const result = await response.json();
+    return result;
+  } catch (error) {
+    console.error('Error sending confirmation email:', error);
+    throw error;
+  }
+};
+
+// Alias for sendConfirmationEmail to maintain compatibility with existing code
+export const sendGrievanceConfirmationEmail = sendConfirmationEmail;
 
 // Helper functions to map database models to app models
 function mapUserData(user: Database['public']['Tables']['users']['Row']): User {

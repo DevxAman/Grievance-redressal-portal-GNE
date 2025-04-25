@@ -122,26 +122,6 @@ const BackgroundCarousel: React.FC<BackgroundCarouselProps> = ({
     };
   }, [startCarousel]);
 
-  // Carousel indicator dots
-  const renderIndicators = () => {
-    return (
-      <div className="absolute bottom-5 left-0 right-0 flex justify-center space-x-2 z-30">
-        {campusImages.map((_, index) => (
-          <div 
-            key={index} 
-            className={`h-2 rounded-full transition-all duration-300 ${
-              index === currentImageIndex 
-                ? 'w-8 bg-blue-500' 
-                : 'w-2 bg-white/50'
-            }`}
-            onClick={() => !transitioningRef.current && changeSlide(index)}
-            style={{ cursor: transitioningRef.current ? 'default' : 'pointer' }}
-          />
-        ))}
-      </div>
-    );
-  };
-
   return (
     <div className="absolute inset-0 overflow-hidden">
       {/* Semi-transparent overlay for better text readability */}
@@ -171,9 +151,6 @@ const BackgroundCarousel: React.FC<BackgroundCarouselProps> = ({
       
       {/* Gradients for better text visibility */}
       <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-black/50 z-15"></div>
-      
-      {/* Indicators */}
-      {renderIndicators()}
     </div>
   );
 };

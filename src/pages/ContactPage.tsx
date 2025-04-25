@@ -178,7 +178,7 @@ const ContactPage: React.FC = () => {
                   value={formData.email}
                   onChange={handleChange}
                   className={`w-full bg-white/10 backdrop-blur-sm border ${errors.email ? 'border-red-500' : 'border-white/20'} rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500`}
-                  placeholder="johndoe@example.com"
+                  placeholder="johnexample@gmail.com"
                 />
                 {errors.email && <p className="mt-1 text-red-400 text-sm">{errors.email}</p>}
               </div>
@@ -263,7 +263,7 @@ const ContactPage: React.FC = () => {
                   </div>
                   <div>
                     <h3 className="text-lg text-white font-medium">Email</h3>
-                    <p className="text-gray-300 mt-1">support@gndecgrievance.com</p>
+                    <p className="text-gray-300 mt-1">std.grievance@gmail.com</p>
                     <p className="text-gray-400 text-sm mt-1">We'll respond as soon as possible</p>
                   </div>
                 </div>

@@ -1,8 +1,9 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { GrievanceProvider } from './contexts/GrievanceContext';
-import { initEmailJS } from './lib/emailService';
+import { Toaster } from 'react-hot-toast';
+import ScrollToTop from './components/ScrollToTop';
 
 // Layout components
 import Navbar from './components/layout/Navbar';
@@ -19,33 +20,11 @@ import HowItWorksPage from './pages/HowItWorksPage';
 import ContactPage from './pages/ContactPage';
 
 const App: React.FC = () => {
-  useEffect(() => {
-    // Initialize EmailJS
-    try {
-      // Get EmailJS User ID from environment variables
-      const emailJSUserID = import.meta.env.VITE_EMAILJS_USER_ID;
-      
-      console.log('Environment Variables Check:');
-      console.log('- VITE_EMAILJS_USER_ID:', emailJSUserID ? 'Present' : 'Missing');
-      console.log('- VITE_EMAILJS_SERVICE_ID:', import.meta.env.VITE_EMAILJS_SERVICE_ID ? 'Present' : 'Missing');
-      console.log('- VITE_EMAILJS_TEMPLATE_ID:', import.meta.env.VITE_EMAILJS_TEMPLATE_ID ? 'Present' : 'Missing');
-      
-      if (!emailJSUserID || emailJSUserID === 'your_emailjs_user_id') {
-        console.warn('EmailJS User ID is missing or using the placeholder value. Email functionality will not work correctly.');
-        return;
-      }
-      
-      initEmailJS(emailJSUserID);
-      console.log('EmailJS initialized successfully with User ID:', emailJSUserID.substring(0, 5) + '...');
-    } catch (error) {
-      console.error('Error initializing EmailJS:', error);
-    }
-  }, []);
-
   return (
     <AuthProvider>
       <GrievanceProvider>
         <Router>
+          <ScrollToTop />
           <div className="flex flex-col min-h-screen">
             <Navbar />
             <main className="flex-grow">
@@ -65,6 +44,32 @@ const App: React.FC = () => {
             </main>
             <Footer />
           </div>
+          
+          {/* Toast notification container */}
+          <Toaster 
+            position="top-right"
+            toastOptions={{
+              duration: 4000,
+              style: {
+                background: '#363636',
+                color: '#fff',
+              },
+              success: {
+                duration: 3000,
+                style: {
+                  background: '#22c55e',
+                  color: '#fff',
+                },
+              },
+              error: {
+                duration: 4000,
+                style: {
+                  background: '#ef4444',
+                  color: '#fff',
+                },
+              }
+            }}
+          />
         </Router>
       </GrievanceProvider>
     </AuthProvider>
