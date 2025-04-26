@@ -3,7 +3,10 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useGrievance } from '../hooks/useGrievance';
 import GrievanceCard from '../components/grievance/GrievanceCard';
-import { PlusCircle, FilePlus, BarChart3, HelpCircle, LogOut, Loader2, User } from 'lucide-react';
+import { 
+  PlusCircle, FilePlus, BarChart3, HelpCircle, LogOut, Loader2, User, 
+  Mail, Calendar, Shield, BookOpen, Building, GraduationCap, Home
+} from 'lucide-react';
 
 const DashboardPage: React.FC = () => {
   const { user, isAuthenticated, logout } = useAuth();
@@ -39,6 +42,41 @@ const DashboardPage: React.FC = () => {
   const pendingCount = pendingGrievances.length;
   const resolvedCount = resolvedGrievances.length;
   const rejectedCount = grievances.filter(g => g.status === 'rejected').length;
+
+  // Format date for better display
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return 'N/A';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+  };
+
+  // Get student data from the database or fallback to mock data if not available
+  const getStudentData = () => {
+    if (!user || user.role !== 'student') return null;
+    
+    // If CRN and year are not available in the database, use fallback values 
+    const numericPart = user.user_id.match(/\d+/);
+    const num = numericPart ? parseInt(numericPart[0]) : 0;
+    
+    return {
+      // Use database values if available, otherwise use fallback
+      crn: user.crn || 221000 + num,
+      branch: user.branch || ['CSE', 'IT', 'ECE', 'ME', 'CE', 'EE'][num % 6],
+      year: user.year || (num % 4) + 1,
+      isHosteler: user.day_scholar === undefined ? Boolean(num % 2) : !user.day_scholar
+    };
+  };
+  
+  // Get student data if user is a student
+  const studentData = getStudentData();
+  
+  // Debug log to check what's coming from the database
+  console.log("User data from database:", {
+    crn: user?.crn,
+    year: user?.year,
+    branch: user?.branch,
+    day_scholar: user?.day_scholar
+  });
   
   return (
     <div className="min-h-screen bg-gray-50">
@@ -50,11 +88,116 @@ const DashboardPage: React.FC = () => {
               <span>Welcome back, </span>
               <Link to="/dashboard" className="flex items-center ml-1 text-blue-600 hover:text-blue-800 font-semibold transition-colors">
                 <User className="h-4 w-4 mr-1" />
-                <span>{user.user_id || 'User'}</span>
+                <span>{user.name || user.user_id || 'User'}</span>
               </Link>
             </div>
           )}
         </div>
+
+        {/* User Profile Section */}
+        {user && (
+          <div className="mb-10 bg-white rounded-xl shadow-md overflow-hidden">
+            <div className="md:flex">
+              <div className="md:shrink-0 bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center p-6 md:p-8">
+                <div className="h-20 w-20 rounded-full bg-white text-blue-600 flex items-center justify-center text-3xl font-bold">
+                  {user.name ? user.name.charAt(0).toUpperCase() : user.user_id.charAt(0).toUpperCase()}
+                </div>
+              </div>
+              <div className="p-6 md:p-8 w-full">
+                <div className="uppercase tracking-wide text-sm text-indigo-500 font-semibold mb-1">
+                  User Profile
+                </div>
+                <h2 className="text-2xl font-bold text-gray-900 mb-4">{user.name || 'N/A'}</h2>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="flex items-start">
+                    <User className="h-5 w-5 text-gray-400 mt-0.5 mr-3" />
+                    <div>
+                      <p className="text-sm text-gray-500">User ID</p>
+                      <p className="font-medium">{user.user_id}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start">
+                    <Mail className="h-5 w-5 text-gray-400 mt-0.5 mr-3" />
+                    <div>
+                      <p className="text-sm text-gray-500">Email</p>
+                      <p className="font-medium">{user.email}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start">
+                    <Shield className="h-5 w-5 text-gray-400 mt-0.5 mr-3" />
+                    <div>
+                      <p className="text-sm text-gray-500">Role</p>
+                      <p className="font-medium capitalize">
+                        <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                          user.role === 'admin' ? 'bg-purple-100 text-purple-800' :
+                          user.role === 'dsw' ? 'bg-blue-100 text-blue-800' :
+                          user.role === 'clerk' ? 'bg-green-100 text-green-800' :
+                          'bg-yellow-100 text-yellow-800'
+                        }`}>
+                          {user.role}
+                        </span>
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start">
+                    <Calendar className="h-5 w-5 text-gray-400 mt-0.5 mr-3" />
+                    <div>
+                      <p className="text-sm text-gray-500">Account Created</p>
+                      <p className="font-medium">{formatDate(user.created_at)}</p>
+                    </div>
+                  </div>
+
+                  {/* Student-specific information */}
+                  {studentData && (
+                    <>
+                      <div className="flex items-start">
+                        <BookOpen className="h-5 w-5 text-gray-400 mt-0.5 mr-3" />
+                        <div>
+                          <p className="text-sm text-gray-500">College Roll No (CRN)</p>
+                          <p className="font-medium">{studentData.crn}</p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-start">
+                        <Building className="h-5 w-5 text-gray-400 mt-0.5 mr-3" />
+                        <div>
+                          <p className="text-sm text-gray-500">Branch</p>
+                          <p className="font-medium">{studentData.branch}</p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-start">
+                        <GraduationCap className="h-5 w-5 text-gray-400 mt-0.5 mr-3" />
+                        <div>
+                          <p className="text-sm text-gray-500">Year</p>
+                          <p className="font-medium">{studentData.year}{studentData.year === 1 ? 'st' : studentData.year === 2 ? 'nd' : studentData.year === 3 ? 'rd' : 'th'} Year</p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-start">
+                        <Home className="h-5 w-5 text-gray-400 mt-0.5 mr-3" />
+                        <div>
+                          <p className="text-sm text-gray-500">Residence Status</p>
+                          <p className="font-medium">
+                            <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                              studentData.isHosteler ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'
+                            }`}>
+                              {studentData.isHosteler ? 'Hosteler' : 'Day Scholar'}
+                            </span>
+                          </p>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
         
         {/* Quick Actions */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">

@@ -7,6 +7,10 @@ export interface User {
   name?: string;
   contact_number?: string;
   created_at?: string;
+  crn?: number; // College Roll Number (int8)
+  year?: number; // Academic year (1-4)
+  branch?: string;
+  day_scholar?: boolean;
 }
 
 export interface Response {

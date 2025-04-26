@@ -263,7 +263,7 @@ const HeroSection: React.FC = () => {
         {/* Indicators - moved from bottom to above steps */}
         <div className="flex justify-center z-30 my-4 sm:my-6">
           <div className="flex space-x-1.5 sm:space-x-2 bg-black/40 backdrop-blur-md px-4 sm:px-5 py-2 sm:py-3 rounded-full shadow-lg">
-            {[0, 1, 2, 3, 4].map((index) => (
+            {[0, 1, 2, 3, 4, 5].map((index) => (
               <div 
                 key={index}
                 onClick={() => setCurrentSlide(index)}

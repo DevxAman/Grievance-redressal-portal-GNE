@@ -18,6 +18,7 @@ import FileGrievancePage from './pages/FileGrievancePage';
 import TrackGrievancePage from './pages/TrackGrievancePage';
 import HowItWorksPage from './pages/HowItWorksPage';
 import ContactPage from './pages/ContactPage';
+import DevelopersPage from './pages/DevelopersPage';
 
 const App: React.FC = () => {
   return (
@@ -37,6 +38,7 @@ const App: React.FC = () => {
                 <Route path="/track-grievance" element={<TrackGrievancePage />} />
                 <Route path="/how-it-works" element={<HowItWorksPage />} />
                 <Route path="/contact" element={<ContactPage />} />
+                <Route path="/developers" element={<DevelopersPage />} />
                 
                 {/* Add a catch-all route */}
                 <Route path="*" element={<Navigate to="/" replace />} />

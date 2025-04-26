@@ -66,36 +66,7 @@ const sendEmailConfirmation = async (to, subject, grievanceData) => {
 const supabaseUrl = 'https://dypvelqdjyfbbslqpjxn.supabase.co';
 const supabaseServiceRoleKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR5cHZlbHFkanlmYmJzbHFwanhuIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0NTIzMDAwMCwiZXhwIjoyMDYwODA2MDAwfQ.pWRG8sEn6YF2troZ7BYWyPDFwYcJFKm8MptUho5zE8Q';
 const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
-async function testConnection() {
-  try {
-    console.log('Testing Supabase connection...');
-    const { data, error } = await supabase.from('users').select('id').limit(1);
-    
-    if (error) {
-      console.error('❌ Connection failed:', error.message);
-      return false;
-    }
-    
-    console.log('✅ Successfully connected to Supabase!');
-    console.log('Data received:', data);
-    return true;
-  } catch (err) {
-    console.error('❌ Error testing connection:', err.message);
-    return false;
-  }
-}
 
-// Run the test
-testConnection()
-  .then(result => {
-    if (!result) {
-      process.exit(1);
-    }
-  })
-  .catch(err => {
-    console.error('Unexpected error:', err);
-    process.exit(1);
-  }); 
 // Create Express app
 const app = express();
 app.use(cors());
@@ -296,8 +267,8 @@ app.post('/api/auth/signup', async (req, res) => {
       pendingRegistrations.delete(email);
     }, 30 * 60 * 1000);
     
-    // Log OTP for development purposes (remove in production)
-    console.log(`Dev only - OTP for ${email}: ${otp}`);
+    // In a production environment, we would send an email with the OTP here
+    // For now, we're just returning success and handling the verification separately
     
     res.json({ 
       success: true, 
@@ -392,69 +363,6 @@ app.post('/api/auth/verify', async (req, res) => {
   }
 });
 
-// Test/debug endpoint for checking user with ID 123
-app.get('/api/debug/check-test-user', async (req, res) => {
-  try {
-    // Check if user with ID 123 exists
-    const { data: existingUser, error: checkError } = await supabase
-      .from('users')
-      .select('*')
-      .eq('user_id', '123')
-      .single();
-    
-    if (checkError && checkError.code !== 'PGRST116') {
-      return res.status(500).json({
-        success: false,
-        message: 'Error checking for test user',
-        error: checkError
-      });
-    }
-    
-    if (existingUser) {
-      return res.json({
-        success: true,
-        message: 'Test user exists',
-        user: existingUser
-      });
-    }
-    
-    // Create test user if it doesn't exist
-    const testUser = {
-      user_id: '123',
-      email: 'test123@gndec.ac.in',
-      password: '123',
-      role: 'student',
-      created_at: new Date().toISOString()
-    };
-    
-    const { data: newUser, error: createError } = await supabase
-      .from('users')
-      .insert([testUser])
-      .select();
-    
-    if (createError) {
-      return res.status(500).json({
-        success: false,
-        message: 'Error creating test user',
-        error: createError
-      });
-    }
-    
-    return res.json({
-      success: true,
-      message: 'Test user created',
-      user: newUser[0]
-    });
-  } catch (error) {
-    console.error('Debug endpoint error:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Server error',
-      error: error.message
-    });
-  }
-});
-
 // Add endpoint for sending grievance confirmation emails
 app.post('/api/grievances/send-confirmation', async (req, res) => {
   try {
@@ -498,7 +406,8 @@ app.post('/api/grievances/send-confirmation', async (req, res) => {
 });
 
 // Start server
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`✅ Server running on port ${PORT}`);
+  console.log(`🔌 Connected to Supabase at ${supabaseUrl}`);
 }); 

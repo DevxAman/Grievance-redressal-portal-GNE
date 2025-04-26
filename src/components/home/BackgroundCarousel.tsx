@@ -2,10 +2,11 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 
 // Import local images from assets folder
 import image1 from '../../assets/1519122936phpePM7ls.jpeg';
-import image2 from '../../assets/1519123202phpyOphas.jpeg';
-import image3 from '../../assets/1519122882phpRESgjV.png';
-import image4 from '../../assets/1489641851phpadqE3r.png';
-import image5 from '../../assets/1489641871php5ZZD7g.png';
+import image2 from '../../assets/1489641871php5ZZD7g.png';
+import image3 from '../../assets/1489641851phpadqE3r.png';
+import image4 from '../../assets/1.jpg';
+import image5 from '../../assets/6080350760060700394.jpg';
+import image6 from '../../assets/WhatsApp Image 2025-04-25 at 17.20.42_fc85894d.jpg';
 
 // Use local images from assets folder
 const campusImages = [
@@ -13,7 +14,8 @@ const campusImages = [
   image2, 
   image3,
   image4,
-  image5
+  image5,
+  image6
 ];
 
 // Preload all images on component initialization

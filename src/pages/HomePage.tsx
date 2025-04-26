@@ -69,43 +69,43 @@ const HomePage: React.FC = () => {
           </div>
           
           <div className="relative">
-            {/* Progress Line */}
+            {/* Progress Line - visible on md and larger screens */}
             <div className="hidden md:block absolute left-1/2 top-0 bottom-0 w-1 bg-blue-200 transform -translate-x-1/2"></div>
             
-            <div className="space-y-8 relative">
+            <div className="space-y-12 md:space-y-16 relative">
               {/* Step 1 */}
-              <div className="md:flex items-center">
-                <div className="md:w-1/2 md:pr-12 md:text-right mb-4 md:mb-0">
+              <div className="flex flex-col md:flex-row md:items-center">
+                <div className="md:w-5/12 mb-4 md:mb-0 md:text-right order-2 md:order-1">
                   <h3 className="text-xl font-semibold text-gray-900 mb-2">Submit Your Grievance</h3>
                   <p className="text-gray-600">
                     Fill out the grievance form with details about your issue and upload any relevant documents.
                   </p>
                 </div>
                 
-                <div className="md:w-12 md:mx-auto relative flex justify-center">
-                  <div className="h-10 w-10 rounded-full border-4 border-blue-200 bg-blue-600 text-white flex items-center justify-center font-bold text-xl z-10">
+                <div className="w-full md:w-2/12 flex justify-center items-center order-1 md:order-2 mb-4 md:mb-0">
+                  <div className="h-12 w-12 rounded-full border-4 border-blue-200 bg-blue-600 text-white flex items-center justify-center font-bold text-xl z-10">
                     1
                   </div>
                 </div>
                 
-                <div className="md:w-1/2 md:pl-12 hidden md:block">
+                <div className="md:w-5/12 hidden md:block order-3">
                   {/* Placeholder for right side on first step */}
                 </div>
               </div>
               
               {/* Step 2 */}
-              <div className="md:flex items-center">
-                <div className="md:w-1/2 md:pr-12 hidden md:block">
+              <div className="flex flex-col md:flex-row md:items-center">
+                <div className="md:w-5/12 hidden md:block order-1">
                   {/* Placeholder for left side on second step */}
                 </div>
                 
-                <div className="md:w-12 md:mx-auto relative flex justify-center">
-                  <div className="h-10 w-10 rounded-full border-4 border-blue-200 bg-blue-600 text-white flex items-center justify-center font-bold text-xl z-10">
+                <div className="w-full md:w-2/12 flex justify-center items-center order-1 md:order-2 mb-4 md:mb-0">
+                  <div className="h-12 w-12 rounded-full border-4 border-blue-200 bg-blue-600 text-white flex items-center justify-center font-bold text-xl z-10">
                     2
                   </div>
                 </div>
                 
-                <div className="md:w-1/2 md:pl-12 md:text-left mb-4 md:mb-0">
+                <div className="md:w-5/12 mb-4 md:mb-0 order-2 md:order-3">
                   <h3 className="text-xl font-semibold text-gray-900 mb-2">Grievance Processing</h3>
                   <p className="text-gray-600">
                     Your grievance is reviewed by the appropriate authority and assigned to the relevant department.
@@ -114,38 +114,38 @@ const HomePage: React.FC = () => {
               </div>
               
               {/* Step 3 */}
-              <div className="md:flex items-center">
-                <div className="md:w-1/2 md:pr-12 md:text-right mb-4 md:mb-0">
+              <div className="flex flex-col md:flex-row md:items-center">
+                <div className="md:w-5/12 mb-4 md:mb-0 md:text-right order-2 md:order-1">
                   <h3 className="text-xl font-semibold text-gray-900 mb-2">Track Progress</h3>
                   <p className="text-gray-600">
                     Monitor the status of your grievance in real-time through your dashboard and receive email updates.
                   </p>
                 </div>
                 
-                <div className="md:w-12 md:mx-auto relative flex justify-center">
-                  <div className="h-10 w-10 rounded-full border-4 border-blue-200 bg-blue-600 text-white flex items-center justify-center font-bold text-xl z-10">
+                <div className="w-full md:w-2/12 flex justify-center items-center order-1 md:order-2 mb-4 md:mb-0">
+                  <div className="h-12 w-12 rounded-full border-4 border-blue-200 bg-blue-600 text-white flex items-center justify-center font-bold text-xl z-10">
                     3
                   </div>
                 </div>
                 
-                <div className="md:w-1/2 md:pl-12 hidden md:block">
+                <div className="md:w-5/12 hidden md:block order-3">
                   {/* Placeholder for right side on third step */}
                 </div>
               </div>
               
               {/* Step 4 */}
-              <div className="md:flex items-center">
-                <div className="md:w-1/2 md:pr-12 hidden md:block">
+              <div className="flex flex-col md:flex-row md:items-center">
+                <div className="md:w-5/12 hidden md:block order-1">
                   {/* Placeholder for left side on fourth step */}
                 </div>
                 
-                <div className="md:w-12 md:mx-auto relative flex justify-center">
-                  <div className="h-10 w-10 rounded-full border-4 border-blue-200 bg-blue-600 text-white flex items-center justify-center font-bold text-xl z-10">
+                <div className="w-full md:w-2/12 flex justify-center items-center order-1 md:order-2 mb-4 md:mb-0">
+                  <div className="h-12 w-12 rounded-full border-4 border-blue-200 bg-blue-600 text-white flex items-center justify-center font-bold text-xl z-10">
                     4
                   </div>
                 </div>
                 
-                <div className="md:w-1/2 md:pl-12 md:text-left">
+                <div className="md:w-5/12 order-2 md:order-3">
                   <h3 className="text-xl font-semibold text-gray-900 mb-2">Resolution</h3>
                   <p className="text-gray-600">
                     Receive the resolution for your grievance and provide feedback on the process.
