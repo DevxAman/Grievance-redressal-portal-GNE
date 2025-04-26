@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
-import { Menu, X, User, LogOut, FileText, Search, HelpCircle, Mail, Home, LayoutDashboard } from 'lucide-react';
+import { Menu, X, User, LogOut, FileText, Search, HelpCircle, Mail, Home, LayoutDashboard, Code } from 'lucide-react';
 
 const Navbar: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -54,6 +54,7 @@ const Navbar: React.FC = () => {
     { name: 'Track Grievance', path: '/track-grievance', icon: Search },
     { name: 'How It Works', path: '/how-it-works', icon: HelpCircle },
     { name: 'Contact', path: '/contact', icon: Mail },
+    { name: 'Developers', path: '/developers', icon: Code },
   ];
 
   const isActive = (path: string) => {
