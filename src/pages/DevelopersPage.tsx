@@ -170,7 +170,7 @@ const DevelopersPage: React.FC = () => {
     },
     {
       name: 'Arshpreet Kaur',
-      role: 'UI/UX Designer',
+      role: 'Frontend Designer',
     //   bio: 'Creative designer who crafted the user interface for the grievance form and dashboard components. Implemented responsive layouts with Tailwind CSS and designed accessible user flows that significantly enhance the user experience across all device sizes.',
       image: '/images/developers/1723293470441.jpeg',
       skills: ['UI/UX Design', 'Tailwind CSS', 'React Components','Frontend Development', 'Accessibility'],
