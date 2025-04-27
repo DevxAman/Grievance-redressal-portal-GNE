@@ -184,7 +184,7 @@ const DevelopersPage: React.FC = () => {
         name: 'Natasha Pal',
         role: 'UI/UX Designer',
         // bio: 'Frontend specialist who designed and implemented the tracking interface and status visualization components. Created intuitive navigation elements and interactive features using React, ensuring a seamless user journey throughout the grievance management process.',
-        image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=687&q=80',
+        image: '/images/developers/123.jpg',
         skills: ['React Components', 'Responsive Design', 'UI Animation', 'User Testing'],
         links: {
           github: 'https://github.com/rajinder',
