@@ -730,12 +730,12 @@ app.get('/api/admin/emails', async (req, res) => {
   }
 });
 
-// IMAP configuration
+// IMAP configuration for GNDEC email server
 const imapConfig = {
-  user: process.env.EMAIL_USER,
-  password: process.env.EMAIL_PASS,
-  host: 'imap.gmail.com',
-  port: 993,
+  user: process.env.EMAIL_USER1,
+  password: process.env.EMAIL_PASS1,
+  host: 'imap.gndec.ac.in',
+  port: 426,
   tls: true,
   tlsOptions: { rejectUnauthorized: false }
 };
