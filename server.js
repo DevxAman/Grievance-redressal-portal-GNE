@@ -732,12 +732,12 @@ app.get('/api/admin/emails', async (req, res) => {
 
 // IMAP configuration for GNDEC email server
 const imapConfig = {
-  user: process.env.EMAIL_USER1,
-  password: process.env.EMAIL_PASS1,
-  host: 'imap.gndec.ac.in',
-  port: 426,
-  tls: true,
-  tlsOptions: { rejectUnauthorized: false }
+  user: process.env.EMAIL_USER1,      // Your GNDEC email address (e.g., yourname@gndec.ac.in)
+  password: process.env.EMAIL_PASS1,  // Your GNDEC email password
+  host: 'mx7.gndec.ac.in',          // GNDEC's IMAP server
+  port: 993,                        // IMAP SSL port
+  tls: true,                        // Use TLS for secure connection
+  tlsOptions: { rejectUnauthorized: false }  // Allow self-signed certificates if needed
 };
 
 // Function to parse email body and extract content
@@ -772,16 +772,26 @@ function parseEmailBody(body) {
 // Function to fetch emails from Gmail
 async function fetchEmailsFromGmail() {
   return new Promise((resolve, reject) => {
+    console.log('Attempting to connect to IMAP server with config:', {
+      host: imapConfig.host,
+      port: imapConfig.port,
+      user: `${imapConfig.user.substring(0, 3)}...`, // Only show first 3 chars of email
+      tls: imapConfig.tls
+    });
+
     const imapConnection = new imap(imapConfig);
     const emails = [];
 
     imapConnection.once('ready', () => {
+      console.log('IMAP connection established successfully');
       imapConnection.openBox('INBOX', false, (err, box) => {
         if (err) {
+          console.error('Error opening INBOX:', err);
           imapConnection.end();
           reject(err);
           return;
         }
+        console.log('INBOX opened successfully');
 
         const searchCriteria = ['UNSEEN'];
         const fetchOptions = {
@@ -791,10 +801,12 @@ async function fetchEmailsFromGmail() {
 
         imapConnection.search(searchCriteria, (err, results) => {
           if (err) {
+            console.error('Error searching emails:', err);
             imapConnection.end();
             reject(err);
             return;
           }
+          console.log(`Found ${results.length} unread emails`);
 
           if (results.length === 0) {
             imapConnection.end();
@@ -809,7 +821,7 @@ async function fetchEmailsFromGmail() {
               headers: {},
               body: '',
               attachments: [],
-              to: process.env.EMAIL_USER // Set the recipient to the configured email
+              to: process.env.EMAIL_USER1
             };
 
             msg.on('body', (stream, info) => {
@@ -838,11 +850,13 @@ async function fetchEmailsFromGmail() {
           });
 
           fetch.once('error', (err) => {
+            console.error('Error fetching email content:', err);
             imapConnection.end();
             reject(err);
           });
 
           fetch.once('end', () => {
+            console.log('Finished fetching all emails');
             imapConnection.end();
             resolve(emails);
           });
@@ -851,7 +865,12 @@ async function fetchEmailsFromGmail() {
     });
 
     imapConnection.once('error', (err) => {
+      console.error('IMAP connection error:', err);
       reject(err);
+    });
+
+    imapConnection.once('end', () => {
+      console.log('IMAP connection ended');
     });
 
     imapConnection.connect();
