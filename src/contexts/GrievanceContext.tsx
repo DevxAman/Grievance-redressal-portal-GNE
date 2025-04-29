@@ -272,18 +272,28 @@ export const GrievanceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const submitNewGrievance = async (formData: FormData) => {
     if (!user) {
       console.error('No authenticated user found');
-      return;
+      throw new Error('You must be logged in to submit a grievance');
     }
 
+    dispatch({ type: 'SUBMIT_GRIEVANCE_REQUEST' });
     console.log('Submitting new grievance for user:', user.id);
+    
     try {
+      // Submit the grievance to the database
       const data = await submitGrievance(formData, user.id);
+      
       if (data) {
+        // Update local state with the new grievance
         dispatch({ type: 'SUBMIT_GRIEVANCE_SUCCESS', payload: data });
         
         // Send confirmation email using server-side Nodemailer
         try {
           console.log('Sending confirmation email using Nodemailer server-side');
+          
+          if (!user.email) {
+            console.warn('No user email found for confirmation email');
+            return data;
+          }
           
           // Send confirmation email using nodemailer
           const serverEmailResult = await sendGrievanceConfirmationEmail(
@@ -297,6 +307,7 @@ export const GrievanceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             console.log('Server-side confirmation email sent for grievance:', data.id);
           } else {
             console.warn('Failed to send server-side confirmation email:', serverEmailResult.message);
+            // Consider implementing a retry mechanism here
           }
         } catch (serverEmailError) {
           console.error('Error sending server-side confirmation email:', serverEmailError);
@@ -304,10 +315,14 @@ export const GrievanceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         }
         
         return data;
+      } else {
+        throw new Error('Failed to submit grievance - no data returned');
       }
     } catch (error) {
       console.error('Error submitting grievance:', error);
-      dispatch({ type: 'SUBMIT_GRIEVANCE_FAILURE', payload: 'Failed to submit grievance' });
+      const errorMessage = error instanceof Error ? error.message : 'Failed to submit grievance';
+      dispatch({ type: 'SUBMIT_GRIEVANCE_FAILURE', payload: errorMessage });
+      throw error; // Re-throw to allow the UI to handle it
     }
   };
 
@@ -340,32 +355,33 @@ export const GrievanceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         console.warn('Could not update grievance status, but will continue with reminder:', statusError);
       }
       
-      // Primary method: Open Gmail in a new tab with pre-filled reminder email
-      const recipient = 'std.grievance@gmail.com';
-      const subject = encodeURIComponent(`REMINDER: Grievance #${grievanceId} - ${grievanceToRemind.title}`);
-      const formattedDate = new Date(grievanceToRemind.created_at).toLocaleDateString();
-      const body = encodeURIComponent(
-        `Dear Admin,\n\n` +
-        `I am writing to follow up on my grievance (ID: ${grievanceId}) which was submitted on ${formattedDate}.\n\n` +
-        `Title: ${grievanceToRemind.title}\n` +
-        `Category: ${grievanceToRemind.category}\n` +
-        `Current Status: ${grievanceToRemind.status.replace('-', ' ')}\n\n` +
-        `I would appreciate if you could provide an update on the status of my grievance.\n\n` +
-        `Thank you for your attention to this matter.\n\n` +
-        `Sincerely,\n` +
-        `${user.name || user.user_id}\n` +
-        `${user.email}`
-      );
-      
-      window.open(`https://mail.google.com/mail/?view=cm&fs=1&to=${recipient}&su=${subject}&body=${body}`, '_blank');
-      
-      // Secondary method (optional): Try to send email notification via the API
+      // Primary method: Send reminder email via server using Nodemailer
+      console.log('Sending reminder email via server...');
       try {
-        await sendReminderEmail(grievanceToRemind, user.email);
-        console.log('API reminder email sent successfully');
+        await sendReminderEmail(grievanceToRemind, user.email, user.name || user.user_id, user.user_id);
+        console.log('Server reminder email sent successfully');
       } catch (emailError) {
-        console.warn('API email failed, but Gmail compose was opened:', emailError);
-        // This is now considered optional, so we don't throw an error
+        console.error('Server email failed:', emailError);
+        // Fallback to browser Gmail window if server email fails
+        // Open Gmail in a new tab with pre-filled reminder email
+        const recipient = 'std_grievance@gndec.ac.in';
+        const subject = encodeURIComponent(`REMINDER: Grievance #${grievanceId} - ${grievanceToRemind.title}`);
+        const formattedDate = new Date(grievanceToRemind.created_at).toLocaleDateString();
+        const body = encodeURIComponent(
+          `Dear Admin,\n\n` +
+          `I am writing to follow up on my grievance (ID: ${grievanceId}) which was submitted on ${formattedDate}.\n\n` +
+          `Title: ${grievanceToRemind.title}\n` +
+          `Category: ${grievanceToRemind.category}\n` +
+          `Current Status: ${grievanceToRemind.status.replace('-', ' ')}\n\n` +
+          `I would appreciate if you could provide an update on the status of my grievance.\n\n` +
+          `Thank you for your attention to this matter.\n\n` +
+          `Sincerely,\n` +
+          `${user.name || user.user_id}\n` +
+          `${user.email}`
+        );
+        
+        window.open(`https://mail.google.com/mail/?view=cm&fs=1&to=${recipient}&su=${subject}&body=${body}`, '_blank');
+        console.log('Fallback to Gmail compose window since server email failed');
       }
       
       // Calculate when the cooldown expires (48 hours from now)

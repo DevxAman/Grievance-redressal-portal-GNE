@@ -1,6 +1,101 @@
-# GNDEC Grievance Redressal Portal
+# GNDEC Grievance Portal
 
-A modern web application for handling grievances at Guru Nanak Dev Engineering College.
+A web application for managing grievances at GNDEC. This portal allows students to submit grievances and administrators to manage and respond to them.
+
+## Setup Instructions
+
+### 1. Clone the repository
+```bash
+git clone <repository-url>
+cd Grievance-redressal-portal-GNE
+```
+
+### 2. Install dependencies
+```bash
+npm install
+```
+
+### 3. Set up environment variables
+Create a `.env.local` file in the root directory with the following variables:
+
+```
+# MongoDB Connection String
+MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/grievance-portal?retryWrites=true&w=majority
+
+# NextAuth configuration
+NEXTAUTH_URL=http://localhost:3000
+NEXTAUTH_SECRET=your-secret-here
+
+# Email Config
+EMAIL_FROM="GNDEC Grievance Portal <std_grievance@gndec.ac.in>"
+SMTP_HOST=smtp.gndec.ac.in
+SMTP_PORT=465
+SMTP_USER=std_grievance@gndec.ac.in
+SMTP_PASSWORD=your-email-password
+SMTP_SECURE=true
+
+# Set to 1 for local development without SMTP
+USE_TEST_EMAIL=0
+```
+
+### 4. Run the development server
+```bash
+npm run dev
+```
+
+## Admin Backend System
+
+The admin backend has a simple structure:
+
+### API Routes:
+
+1. **Email Management**
+   - `/api/admin/emails` - Get all emails
+   - `/api/admin/emails/[id]` - Get, update or delete a specific email
+   - `/api/admin/emails/[id]/reply` - Reply to an email
+   - `/api/admin/emails/[id]/replyAll` - Reply to all recipients 
+   - `/api/admin/emails/[id]/forward` - Forward an email
+
+2. **Grievance Management**
+   - `/api/admin/grievances/[id]/resolve` - Mark a grievance as resolved
+   - `/api/admin/grievances/[id]/assign` - Assign a grievance to a staff member
+
+3. **Staff Management**
+   - `/api/admin/staff` - Get all staff members
+
+4. **Statistics**
+   - `/api/admin/stats` - Get dashboard statistics
+
+### Client-Side API Functions (src/lib/adminAPI.ts):
+
+This file provides simplified functions to interact with the backend:
+
+- `fetchEmails()` - Get all emails
+- `markEmailAsRead(emailId)` - Mark an email as read
+- `deleteEmail(emailId)` - Delete an email
+- `toggleStarEmail(emailId)` - Toggle star status for an email
+- `replyToEmail(emailId, data)` - Reply to an email
+- `replyAllToEmail(emailId, data)` - Reply to all recipients
+- `forwardEmail(emailId, data)` - Forward an email
+- `markGrievanceAsResolvedFromEmail(emailId, grievanceId)` - Mark a grievance as resolved
+- `assignGrievanceToStaff(grievanceId, staffId)` - Assign grievance to staff
+- `fetchStaffMembers()` - Get all staff members 
+- `fetchAdminStats()` - Get dashboard statistics
+
+## Database Structure
+
+The application uses MongoDB with the following collections:
+
+1. **emails** - Stores all emails related to grievances
+2. **grievances** - Stores grievance details and status
+3. **users** - Stores user information including students, staff, and admins
+4. **activityLogs** - Tracks actions taken in the system
+
+## Email Configuration
+
+The primary email address for the portal is: `std_grievance@gndec.ac.in`
+
+For local development without SMTP credentials, set `USE_TEST_EMAIL=1` to use Ethereal email for testing.
 
 ## 🚀 Features
 

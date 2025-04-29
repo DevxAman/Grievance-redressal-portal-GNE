@@ -11,20 +11,47 @@ console.log('Email configuration loaded:', {
   emailPass: process.env.EMAIL_PASS ? '********' : 'not set'
 });
 
-// Nodemailer transporter setup
+// Nodemailer transporter setup with enhanced configuration
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
     user: process.env.EMAIL_USER || 'your-email@gmail.com', // Use environment variable or default
     pass: process.env.EMAIL_PASS || 'your-app-password'    // Use environment variable or default
+  },
+  tls: {
+    rejectUnauthorized: false // Helps with some email server issues
+  },
+  debug: process.env.NODE_ENV !== 'production', // Enable debug in development
+  pool: true, // Use pooled connection (more efficient for multiple sends)
+  maxConnections: 5, // Maximum number of simultaneous connections
+  maxMessages: 100 // Maximum number of messages to send using a connection
+});
+
+// Verify transporter connection at startup
+transporter.verify(function(error, success) {
+  if (error) {
+    console.error('Nodemailer connection error:', error);
+  } else {
+    console.log('Nodemailer server is ready to send messages');
   }
 });
 
-// Email sending function
+// Email sending function with enhanced error handling and template
 const sendEmailConfirmation = async (to, subject, grievanceData) => {
   try {
+    // Validate inputs
+    if (!to || !grievanceData || !grievanceData.id) {
+      throw new Error('Missing required email parameters');
+    }
+
+    // Format date in a readable format
+    const formattedDate = grievanceData.created_at 
+      ? new Date(grievanceData.created_at).toLocaleString() 
+      : new Date().toLocaleString();
+    
+    // Better HTML email template with responsive design
     const mailOptions = {
-      from: process.env.EMAIL_USER || 'your-email@gmail.com',
+      from: `"GNDEC Grievance Portal" <${process.env.EMAIL_USER || 'your-email@gmail.com'}>`,
       to,
       subject,
       html: `
@@ -38,7 +65,7 @@ const sendEmailConfirmation = async (to, subject, grievanceData) => {
             <p style="margin: 5px 0;"><strong>Title:</strong> ${grievanceData.title}</p>
             <p style="margin: 5px 0;"><strong>Category:</strong> ${grievanceData.category}</p>
             <p style="margin: 5px 0;"><strong>Status:</strong> ${grievanceData.status}</p>
-            <p style="margin: 5px 0;"><strong>Submitted on:</strong> ${new Date(grievanceData.created_at).toLocaleString()}</p>
+            <p style="margin: 5px 0;"><strong>Submitted on:</strong> ${formattedDate}</p>
           </div>
           
           <p style="color: #555; font-size: 16px; line-height: 1.5;">Your grievance is now under review by our administration team. You will receive updates as there are developments on your case.</p>
@@ -50,15 +77,145 @@ const sendEmailConfirmation = async (to, subject, grievanceData) => {
             <p style="color: #777; font-size: 14px;">GNDEC Grievance Portal</p>
           </div>
         </div>
+      `,
+      // Adding a plain text alternative for email clients that don't support HTML
+      text: `
+        Grievance Submission Confirmation
+        
+        Dear Student,
+        
+        Your grievance has been successfully submitted to the administration. Here are the details:
+        
+        Grievance ID: ${grievanceData.id}
+        Title: ${grievanceData.title}
+        Category: ${grievanceData.category}
+        Status: ${grievanceData.status}
+        Submitted on: ${formattedDate}
+        
+        Your grievance is now under review by our administration team. You will receive updates as there are developments on your case.
+        
+        Thank you for your patience.
+        
+        This is an automated message. Please do not reply to this email.
+        GNDEC Grievance Portal
       `
     };
 
+    // Send the email with better error handling
     const info = await transporter.sendMail(mailOptions);
-    console.log('Email sent:', info.response);
-    return { success: true, messageId: info.messageId };
+    console.log('Email sent successfully:', {
+      messageId: info.messageId,
+      recipient: to,
+      grievanceId: grievanceData.id
+    });
+    
+    return { 
+      success: true, 
+      messageId: info.messageId,
+      response: info.response
+    };
   } catch (error) {
-    console.error('Error sending email:', error);
-    return { success: false, error: error.message };
+    console.error('Error sending email confirmation:', error);
+    return { 
+      success: false, 
+      error: error.message || 'Unknown error sending email'
+    };
+  }
+};
+
+// Function to send reminder emails to admin
+const sendReminderEmail = async (to, subject, grievanceData, userDetails) => {
+  try {
+    // Validate inputs
+    if (!to || !grievanceData || !grievanceData.id) {
+      throw new Error('Missing required email parameters');
+    }
+
+    // Format date in a readable format
+    const formattedDate = grievanceData.dateSubmitted 
+      ? new Date(grievanceData.dateSubmitted).toLocaleString() 
+      : new Date().toLocaleString();
+    
+    // HTML email template for reminder
+    const mailOptions = {
+      from: `"GNDEC Grievance Portal" <${process.env.EMAIL_USER || 'your-email@gmail.com'}>`,
+      to,
+      subject,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px; background-color: #f9f9f9;">
+          <h2 style="color: #2c3e50; text-align: center; margin-bottom: 20px;">Grievance Reminder</h2>
+          <p style="color: #555; font-size: 16px; line-height: 1.5;">Dear Admin,</p>
+          <p style="color: #555; font-size: 16px; line-height: 1.5;">A student has requested a follow-up on their grievance. Here are the details:</p>
+          
+          <div style="background-color: #fff; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #e74c3c;">
+            <p style="margin: 5px 0;"><strong>Grievance ID:</strong> ${grievanceData.id}</p>
+            <p style="margin: 5px 0;"><strong>Title:</strong> ${grievanceData.title}</p>
+            <p style="margin: 5px 0;"><strong>Category:</strong> ${grievanceData.category}</p>
+            <p style="margin: 5px 0;"><strong>Current Status:</strong> ${grievanceData.status.replace('-', ' ')}</p>
+            <p style="margin: 5px 0;"><strong>Submitted on:</strong> ${formattedDate}</p>
+          </div>
+          
+          <p style="color: #555; font-size: 16px; line-height: 1.5;">The student has requested an update on the status of this grievance.</p>
+          
+          <p style="color: #555; font-size: 16px; line-height: 1.5;">Student information:</p>
+          <ul style="color: #555; font-size: 16px; line-height: 1.5;">
+            <li><strong>Name/ID:</strong> ${userDetails.name || userDetails.user_id}</li>
+            <li><strong>Email:</strong> ${userDetails.email}</li>
+          </ul>
+          
+          <p style="color: #555; font-size: 16px; line-height: 1.5;">Please review this grievance at your earliest convenience.</p>
+          
+          <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
+            <p style="color: #777; font-size: 14px;">This is an automated reminder message.</p>
+            <p style="color: #777; font-size: 14px;">GNDEC Grievance Portal</p>
+          </div>
+        </div>
+      `,
+      // Adding a plain text alternative for email clients that don't support HTML
+      text: `
+        Grievance Reminder
+        
+        Dear Admin,
+        
+        A student has requested a follow-up on their grievance. Here are the details:
+        
+        Grievance ID: ${grievanceData.id}
+        Title: ${grievanceData.title}
+        Category: ${grievanceData.category}
+        Current Status: ${grievanceData.status.replace('-', ' ')}
+        Submitted on: ${formattedDate}
+        
+        The student has requested an update on the status of this grievance.
+        
+        Student information:
+        - Name/ID: ${userDetails.name || userDetails.user_id}
+        - Email: ${userDetails.email}
+        
+        Please review this grievance at your earliest convenience.
+        
+        GNDEC Grievance Portal
+      `
+    };
+
+    // Send the email with better error handling
+    const info = await transporter.sendMail(mailOptions);
+    console.log('Reminder email sent successfully:', {
+      messageId: info.messageId,
+      recipient: to,
+      grievanceId: grievanceData.id
+    });
+    
+    return { 
+      success: true, 
+      messageId: info.messageId,
+      response: info.response
+    };
+  } catch (error) {
+    console.error('Error sending reminder email:', error);
+    return { 
+      success: false, 
+      error: error.message || 'Unknown error sending reminder email'
+    };
   }
 };
 
@@ -363,7 +520,7 @@ app.post('/api/auth/verify', async (req, res) => {
   }
 });
 
-// Add endpoint for sending grievance confirmation emails
+// Add endpoint for sending grievance confirmation emails with improved error handling
 app.post('/api/grievances/send-confirmation', async (req, res) => {
   try {
     const { email, grievanceData } = req.body;
@@ -377,6 +534,26 @@ app.post('/api/grievances/send-confirmation', async (req, res) => {
 
     console.log('Sending grievance confirmation email to:', email);
     
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid email format'
+      });
+    }
+    
+    // Ensure grievanceData has all required fields
+    const requiredFields = ['id', 'title', 'category', 'status'];
+    const missingFields = requiredFields.filter(field => !grievanceData[field]);
+    
+    if (missingFields.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: `Missing required grievance data fields: ${missingFields.join(', ')}`
+      });
+    }
+    
     const result = await sendEmailConfirmation(
       email,
       `Grievance Submission Confirmation - ${grievanceData.title}`,
@@ -387,7 +564,8 @@ app.post('/api/grievances/send-confirmation', async (req, res) => {
       console.log('Email sent successfully');
       return res.json({ 
         success: true, 
-        message: 'Confirmation email sent successfully'
+        message: 'Confirmation email sent successfully',
+        messageId: result.messageId
       });
     } else {
       console.error('Failed to send email:', result.error);
@@ -401,6 +579,85 @@ app.post('/api/grievances/send-confirmation', async (req, res) => {
     res.status(500).json({ 
       success: false, 
       message: error.message || 'Failed to send confirmation email'
+    });
+  }
+});
+
+// Add endpoint for sending reminder emails to admin
+app.post('/api/grievances/send-reminder', async (req, res) => {
+  try {
+    const { 
+      grievanceId, 
+      grievanceTitle, 
+      grievanceCategory, 
+      grievanceStatus, 
+      userEmail,
+      dateSubmitted,
+      userName,
+      userId
+    } = req.body;
+    
+    if (!grievanceId || !grievanceTitle || !grievanceCategory || !userEmail) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Missing required grievance information'
+      });
+    }
+
+    console.log('Sending grievance reminder email to admin');
+    
+    // Admin email address
+    const adminEmail = 'std_grievance@gndec.ac.in';
+    
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(adminEmail) || !emailRegex.test(userEmail)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid email format'
+      });
+    }
+    
+    const grievanceData = {
+      id: grievanceId,
+      title: grievanceTitle,
+      category: grievanceCategory,
+      status: grievanceStatus || 'pending',
+      dateSubmitted: dateSubmitted || new Date().toISOString()
+    };
+    
+    const userDetails = {
+      name: userName,
+      user_id: userId,
+      email: userEmail
+    };
+    
+    const result = await sendReminderEmail(
+      adminEmail,
+      `REMINDER: Grievance #${grievanceId} - ${grievanceTitle}`,
+      grievanceData,
+      userDetails
+    );
+    
+    if (result.success) {
+      console.log('Reminder email sent successfully to admin');
+      return res.json({ 
+        success: true, 
+        message: 'Reminder email sent successfully to admin',
+        messageId: result.messageId
+      });
+    } else {
+      console.error('Failed to send reminder email:', result.error);
+      return res.status(500).json({ 
+        success: false, 
+        message: `Failed to send reminder email: ${result.error}`
+      });
+    }
+  } catch (error) {
+    console.error('Grievance reminder email error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: error.message || 'Failed to send reminder email'
     });
   }
 });

@@ -559,7 +559,12 @@ export const fetchStatistics = async () => {
 };
 
 // Add a function to send reminder email to admin
-export const sendReminderEmail = async (grievanceData: Grievance, userEmail: string) => {
+export const sendReminderEmail = async (
+  grievanceData: Grievance, 
+  userEmail: string,
+  userName?: string,
+  userId?: string
+) => {
   try {
     // API endpoint to send reminder email
     const response = await fetch('/api/grievances/send-reminder', {
@@ -573,7 +578,9 @@ export const sendReminderEmail = async (grievanceData: Grievance, userEmail: str
         grievanceCategory: grievanceData.category,
         grievanceStatus: grievanceData.status,
         userEmail: userEmail,
-        dateSubmitted: grievanceData.created_at
+        dateSubmitted: grievanceData.created_at,
+        userName: userName,
+        userId: userId
       }),
     });
 

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
-import { Menu, X, User, LogOut, FileText, Search, HelpCircle, Mail, Home, LayoutDashboard, Code } from 'lucide-react';
+import { Menu, X, User, LogOut, FileText, Search, HelpCircle, Mail, Home, LayoutDashboard, Code, ShieldAlert } from 'lucide-react';
 
 const Navbar: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -54,7 +54,7 @@ const Navbar: React.FC = () => {
     { name: 'Track Grievance', path: '/track-grievance', icon: Search },
     { name: 'How It Works', path: '/how-it-works', icon: HelpCircle },
     { name: 'Contact', path: '/contact', icon: Mail },
-    { name: 'Developers', path: '/developers', icon: Code },
+    // Developers page removed from main nav
   ];
 
   const isActive = (path: string) => {
@@ -69,6 +69,24 @@ const Navbar: React.FC = () => {
   // Handle dashboard navigation when clicking on username
   const handleDashboardNavigation = () => {
     navigate('/dashboard');
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    });
+  };
+
+  // Handle admin dashboard navigation
+  const handleAdminDashboardNavigation = () => {
+    navigate('/admin/dashboard');
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    });
+  };
+
+  // Handle developers page navigation
+  const handleDevelopersNavigation = () => {
+    navigate('/developers');
     window.scrollTo({
       top: 0,
       behavior: 'smooth'
@@ -124,6 +142,28 @@ const Navbar: React.FC = () => {
               </button>
             ))}
 
+            {/* Developer icon */}
+            <button
+              onClick={handleDevelopersNavigation}
+              title="Developers"
+              className="px-3 py-2 mx-1 rounded-full text-gray-200 hover:bg-gray-700/50 hover:text-white transition-colors duration-200"
+            >
+              <Code className="w-5 h-5" />
+            </button>
+
+            {/* Admin Dashboard button for admin users only */}
+            {user && user.role === 'admin' && (
+              <button
+                onClick={handleAdminDashboardNavigation}
+                className={`px-4 py-2 mx-1 rounded-md text-sm font-medium flex items-center bg-blue-600 hover:bg-blue-700 text-white transition-colors duration-200 ${
+                  isActive('/admin/dashboard') ? 'bg-blue-700' : ''
+                }`}
+              >
+                <ShieldAlert className="w-4 h-4 mr-2" />
+                Admin
+              </button>
+            )}
+
             {user ? (
               <div className="relative ml-4 group">
                 <button 
@@ -145,6 +185,14 @@ const Navbar: React.FC = () => {
                   >
                     <LayoutDashboard className="w-4 h-4 mr-2" /> Dashboard
                   </button>
+                  {user.role === 'admin' && (
+                    <button
+                      onClick={handleAdminDashboardNavigation}
+                      className="flex w-full items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 text-left"
+                    >
+                      <ShieldAlert className="w-4 h-4 mr-2" /> Admin Dashboard
+                    </button>
+                  )}
                   <button
                     onClick={handleLogout}
                     className="flex w-full items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 text-left"
@@ -193,6 +241,28 @@ const Navbar: React.FC = () => {
             </button>
           ))}
           
+          {/* Developer link for mobile */}
+          <button
+            onClick={handleDevelopersNavigation}
+            className="flex items-center px-3 py-2 rounded-md text-base font-medium w-full text-left text-gray-300 hover:bg-gray-700/50 hover:text-white"
+          >
+            <Code className="w-5 h-5 mr-2" />
+            Developers
+          </button>
+          
+          {/* Admin Dashboard button for admin users only (mobile) */}
+          {user && user.role === 'admin' && (
+            <button
+              onClick={handleAdminDashboardNavigation}
+              className={`flex items-center px-3 py-2 rounded-md text-base font-medium w-full text-left bg-blue-600 hover:bg-blue-700 text-white ${
+                isActive('/admin/dashboard') ? 'bg-blue-700' : ''
+              }`}
+            >
+              <ShieldAlert className="w-5 h-5 mr-2" />
+              Admin Dashboard
+            </button>
+          )}
+          
           {user ? (
             <div className="pt-4 pb-3 border-t border-gray-700">
               <div className="flex items-center px-5">
@@ -214,6 +284,15 @@ const Navbar: React.FC = () => {
                   <LayoutDashboard className="w-5 h-5 mr-2" />
                   Dashboard
                 </button>
+                {user.role === 'admin' && (
+                  <button
+                    onClick={handleAdminDashboardNavigation}
+                    className="flex items-center px-3 py-2 rounded-md text-base font-medium text-white bg-blue-600 hover:bg-blue-700 w-full text-left"
+                  >
+                    <ShieldAlert className="w-5 h-5 mr-2" />
+                    Admin Dashboard
+                  </button>
+                )}
                 <button
                   onClick={handleLogout}
                   className="flex items-center w-full px-3 py-2 rounded-md text-base font-medium text-white bg-gray-700 hover:bg-gray-600 text-left"
