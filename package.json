@@ -21,6 +21,7 @@
     "cors": "^2.8.5",
     "express": "^4.21.2",
     "gsap": "^3.12.5",
+    "imap": "^0.8.19",
     "lucide-react": "^0.344.0",
     "mongodb": "^6.3.0",
     "node-fetch": "^3.3.2",

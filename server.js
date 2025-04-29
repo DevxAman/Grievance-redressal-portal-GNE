@@ -3,6 +3,7 @@ import cors from 'cors';
 import bcrypt from 'bcryptjs';
 import { createClient } from '@supabase/supabase-js';
 import nodemailer from 'nodemailer';
+import imap from 'imap';
 import 'dotenv/config'; // Load environment variables
 
 // Log email configuration (with sensitive data redacted)
@@ -726,6 +727,188 @@ app.get('/api/admin/emails', async (req, res) => {
       success: false,
       message: 'Internal server error'
     });
+  }
+});
+
+// IMAP configuration
+const imapConfig = {
+  user: process.env.EMAIL_USER,
+  password: process.env.EMAIL_PASS,
+  host: 'imap.gmail.com',
+  port: 993,
+  tls: true,
+  tlsOptions: { rejectUnauthorized: false }
+};
+
+// Function to parse email body and extract content
+function parseEmailBody(body) {
+  // If the body contains MIME boundaries
+  if (body.includes('Content-Type')) {
+    // Extract text/plain content if available
+    const plainTextMatch = body.match(/Content-Type: text\/plain[^]*?--/);
+    if (plainTextMatch) {
+      const content = plainTextMatch[0]
+        .replace(/Content-Type: text\/plain[^]*?\r\n\r\n/, '') // Remove headers
+        .replace(/\r\n--[^]*$/, '') // Remove trailing boundary
+        .trim();
+      return content;
+    }
+    
+    // If no plain text, try to extract HTML content
+    const htmlMatch = body.match(/Content-Type: text\/html[^]*?--/);
+    if (htmlMatch) {
+      const content = htmlMatch[0]
+        .replace(/Content-Type: text\/html[^]*?\r\n\r\n/, '') // Remove headers
+        .replace(/\r\n--[^]*$/, '') // Remove trailing boundary
+        .trim();
+      return content;
+    }
+  }
+  
+  // If no MIME content found, return the body as is
+  return body.trim();
+}
+
+// Function to fetch emails from Gmail
+async function fetchEmailsFromGmail() {
+  return new Promise((resolve, reject) => {
+    const imapConnection = new imap(imapConfig);
+    const emails = [];
+
+    imapConnection.once('ready', () => {
+      imapConnection.openBox('INBOX', false, (err, box) => {
+        if (err) {
+          imapConnection.end();
+          reject(err);
+          return;
+        }
+
+        const searchCriteria = ['UNSEEN'];
+        const fetchOptions = {
+          bodies: ['HEADER', 'TEXT'],
+          struct: true
+        };
+
+        imapConnection.search(searchCriteria, (err, results) => {
+          if (err) {
+            imapConnection.end();
+            reject(err);
+            return;
+          }
+
+          if (results.length === 0) {
+            imapConnection.end();
+            resolve([]);
+            return;
+          }
+
+          const fetch = imapConnection.fetch(results, fetchOptions);
+          
+          fetch.on('message', (msg) => {
+            const email = {
+              headers: {},
+              body: '',
+              attachments: [],
+              to: process.env.EMAIL_USER // Set the recipient to the configured email
+            };
+
+            msg.on('body', (stream, info) => {
+              let buffer = '';
+              stream.on('data', (chunk) => {
+                buffer += chunk.toString('utf8');
+              });
+              stream.on('end', () => {
+                if (info.which === 'HEADER') {
+                  email.headers = imap.parseHeader(buffer);
+                } else if (info.which === 'TEXT') {
+                  email.body = buffer;
+                }
+              });
+            });
+
+            msg.on('attributes', (attrs) => {
+              email.uid = attrs.uid;
+              email.flags = attrs.flags;
+              email.date = attrs.date;
+            });
+
+            msg.on('end', () => {
+              emails.push(email);
+            });
+          });
+
+          fetch.once('error', (err) => {
+            imapConnection.end();
+            reject(err);
+          });
+
+          fetch.once('end', () => {
+            imapConnection.end();
+            resolve(emails);
+          });
+        });
+      });
+    });
+
+    imapConnection.once('error', (err) => {
+      reject(err);
+    });
+
+    imapConnection.connect();
+  });
+}
+
+// Function to store emails in Supabase
+async function storeEmailsInDatabase(emails) {
+  for (const email of emails) {
+    const { data, error } = await supabase
+      .from('emails')
+      .insert([
+        {
+          subject: email.headers.subject?.[0] || 'No Subject',
+          from: email.headers.from?.[0] || 'Unknown',
+          to: email.to,
+          body: parseEmailBody(email.body), // Parse the email body
+          sentAt: email.date,
+          isRead: false,
+          isStarred: false
+        }
+      ]);
+
+    if (error) {
+      console.error('Error storing email:', error);
+    }
+  }
+}
+
+// Set up periodic email fetching
+setInterval(async () => {
+  try {
+    const emails = await fetchEmailsFromGmail();
+    if (emails.length > 0) {
+      await storeEmailsInDatabase(emails);
+      console.log(`Stored ${emails.length} new emails`);
+    }
+  } catch (error) {
+    console.error('Error fetching emails:', error);
+  }
+}, 5 * 60 * 1000); // Check every 5 minutes
+
+// Add test endpoint for manual email fetching
+app.get('/api/test/fetch-emails', async (req, res) => {
+  try {
+    console.log('Manual email fetch triggered');
+    const emails = await fetchEmailsFromGmail();
+    if (emails.length > 0) {
+      await storeEmailsInDatabase(emails);
+      console.log(`Stored ${emails.length} new emails`);
+      res.json({ success: true, message: `Fetched and stored ${emails.length} new emails` });
+    } else {
+      res.json({ success: true, message: 'No new emails found' });
+    }
+  } catch (error) {
+    console.error('Error in manual email fetch:', error);
+    res.status(500).json({ success: false, message: error.message });
   }
 });
 
