@@ -662,6 +662,73 @@ app.post('/api/grievances/send-reminder', async (req, res) => {
   }
 });
 
+// Add email routes
+app.get('/api/admin/emails', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) {
+      return res.status(401).json({
+        success: false,
+        message: 'Authorization token is required'
+      });
+    }
+
+    const user_id = authHeader.split(' ')[1];
+    if (!user_id) {
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid authorization token format'
+      });
+    }
+
+    // Verify the user exists and is an admin
+    const { data: user, error: userError } = await supabase
+      .from('users')
+      .select('*')
+      .eq('user_id', user_id)
+      .single();
+
+    if (userError || !user) {
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid user'
+      });
+    }
+
+    if (user.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Unauthorized: Admin access required'
+      });
+    }
+
+    // Fetch emails using the service role key
+    const { data: emails, error } = await supabase
+      .from('emails')
+      .select('*')
+      .order('sentAt', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching emails:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Error fetching emails'
+      });
+    }
+
+    return res.json({
+      success: true,
+      emails
+    });
+  } catch (error) {
+    console.error('Error in /api/admin/emails:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
+});
+
 // Start server
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {

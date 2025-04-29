@@ -25,18 +25,35 @@ export interface Email {
  */
 export const fetchEmails = async (): Promise<Email[]> => {
   try {
-    const response = await fetch('/api/admin/emails');
+    // Get the auth state from localStorage
+    const authState = localStorage.getItem('gndec_portal_auth');
+    if (!authState) {
+      throw new Error('No authentication token found');
+    }
+
+    const user = JSON.parse(authState);
+    if (!user || !user.user_id) {
+      throw new Error('User not found in auth state');
+    }
+
+    // Make the request with the user's ID
+    const response = await fetch('http://localhost:3001/api/admin/emails', {
+      headers: {
+        'Authorization': `Bearer ${user.user_id}`
+      }
+    });
+
     if (!response.ok) {
       throw new Error('Failed to fetch emails');
     }
     
     // Transform the data to match our Email interface
     const data = await response.json();
-    return data.map((email: any) => ({
-      id: email._id,
+    return data.emails.map((email: any) => ({
+      id: email.id,
       subject: email.subject || 'No Subject',
       from: email.from || 'unknown@example.com',
-      date: email.date || new Date().toISOString(),
+      date: email.sentAt || new Date().toISOString(),
       body: email.body || '',
       read: email.isRead || false,
       starred: email.isStarred || false,
